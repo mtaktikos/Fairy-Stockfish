@@ -71,6 +71,13 @@ namespace {
         v->materialCounting = BLACK_DRAW_ODDS;
         return v;
     }
+    // Balanced alternation
+    // https://ieee-cog.org/2021/assets/papers/paper_230.pdf
+    Variant* balanced_alternation_variant() {
+        Variant* v = chess_variant();
+        v->balancedAlternation = true;
+        return v;
+    }
     // Pseudo-variant only used for endgame initialization
     Variant* fairy_variant() {
         Variant* v = chess_variant_base();
@@ -1355,6 +1362,7 @@ void VariantMap::init() {
     add("fischerandom", chess960_variant()->conclude());
     add("nocastle", nocastle_variant()->conclude());
     add("armageddon", armageddon_variant()->conclude());
+    add("balancedalternation", balanced_alternation_variant()->conclude());
     add("fairy", fairy_variant()->conclude()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant()->conclude());
     add("makpong", makpong_variant()->conclude());
