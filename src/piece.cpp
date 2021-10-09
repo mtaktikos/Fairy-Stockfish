@@ -112,7 +112,7 @@ namespace {
   }
   PieceInfo* fers_alfil_piece() {
       PieceInfo* p = fers_piece();
-      p->name = "fersAlfil";
+      p->name = "fers_alfil";
       p->betza = "FA";
       PieceInfo* p2 = alfil_piece();
       p->merge(p2);
@@ -221,7 +221,7 @@ namespace {
   }
   PieceInfo* shogi_pawn_piece() {
       PieceInfo* p = new PieceInfo();
-      p->name = "shogiPawn";
+      p->name = "shogi_pawn";
       p->betza = "fW";
       p->stepsQuiet = {NORTH};
       p->stepsCapture = {NORTH};
@@ -237,7 +237,7 @@ namespace {
   }
   PieceInfo* shogi_knight_piece() {
       PieceInfo* p = new PieceInfo();
-      p->name = "shogiKnight";
+      p->name = "shogi_knight";
       p->betza = "fN";
       p->stepsQuiet = {2 * NORTH + WEST, 2 * NORTH + EAST};
       p->stepsCapture = {2 * NORTH + WEST, 2 * NORTH + EAST};
@@ -245,7 +245,7 @@ namespace {
   }
   PieceInfo* euroshogi_knight_piece() {
       PieceInfo* p = shogi_knight_piece();
-      p->name = "euroshogiKnight";
+      p->name = "euroshogi_knight";
       p->betza = "fNsW";
       p->stepsQuiet.push_back(WEST);
       p->stepsQuiet.push_back(EAST);
@@ -263,7 +263,7 @@ namespace {
   }
   PieceInfo* dragon_horse_piece() {
       PieceInfo* p = bishop_piece();
-      p->name = "dragonHorse";
+      p->name = "dragon_horse";
       p->betza = "BW";
       PieceInfo* p2 = wazir_piece();
       p->merge(p2);
@@ -279,11 +279,11 @@ namespace {
   }
   PieceInfo* breakthrough_piece() {
       PieceInfo* p = pawn_piece();
-      p->name = "breakthrough";
-      p->betza = "fWfFcF";
-      p->stepsQuiet.push_back(NORTH_WEST);
-      p->stepsQuiet.push_back(NORTH_EAST);
-      return p;
+	  p->name = "breakthrough";
+      p->betza = "flmFcfWclW";
+	  p->stepsQuiet = {NORTH_WEST};
+      p->stepsCapture = {NORTH, WEST}; 
+	  return p;
   }
   PieceInfo* immobile_piece() {
       PieceInfo* p = new PieceInfo();
@@ -300,7 +300,7 @@ namespace {
   }
   PieceInfo* janggi_cannon_piece() {
       PieceInfo* p = new PieceInfo();
-      p->name = "janggiCannon";
+      p->name = "janggi_cannon";
       p->betza = "pR";
       p->hopperQuiet = {NORTH, EAST, SOUTH, WEST};
       p->hopperCapture = {NORTH, EAST, SOUTH, WEST};
@@ -330,8 +330,8 @@ namespace {
   }
   PieceInfo* janggi_elephant_piece() {
       PieceInfo* p = new PieceInfo();
-      p->name = "janggiElephant";
-      p->betza = "mafsmafW";
+      p->name = "janggi_elephant";
+      p->betza = "nZ";
       p->stepsQuiet = {SOUTH + 2 * SOUTH_WEST, SOUTH + 2 * SOUTH_EAST,
                        WEST  + 2 * SOUTH_WEST, EAST  + 2 * SOUTH_EAST,
                        WEST  + 2 * NORTH_WEST, EAST  + 2 * NORTH_EAST,
