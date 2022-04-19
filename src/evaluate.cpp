@@ -27,6 +27,8 @@
 #include <streambuf>
 #include <vector>
 
+#include "nnue/evaluate_nnue.h"
+
 #include "bitboard.h"
 #include "evaluate.h"
 #include "material.h"
@@ -36,7 +38,6 @@
 #include "timeman.h"
 #include "uci.h"
 #include "incbin/incbin.h"
-
 
 // Macro to embed the default efficiently updatable neural network (NNUE) file
 // data in the engine binary (using incbin.h, by Dale Weiler).
@@ -54,7 +55,6 @@
   const unsigned int         gEmbeddedNNUESize = 1;
 #endif
 
-
 using namespace std;
 
 namespace Stockfish {
@@ -63,8 +63,22 @@ const Variant* currentNnueVariant;
 
 namespace Eval {
 
-  bool useNNUE;
-  string eval_file_loaded = "None";
+  namespace NNUE {
+    string eval_file_loaded = "None";
+    UseNNUEMode useNNUE;
+
+    static UseNNUEMode nnue_mode_from_option(const UCI::Option& mode)
+    {
+      if (mode == "false")
+        return UseNNUEMode::False;
+      else if (mode == "true")
+         return UseNNUEMode::True;
+      else if (mode == "pure")
+        return UseNNUEMode::Pure;
+
+      return UseNNUEMode::False;
+    }
+  }
 
   /// NNUE::init() tries to load a NNUE network at startup time, or when the engine
   /// receives a UCI command "setoption name EvalFile value nn-[a-z0-9]{12}.nnue"
@@ -76,8 +90,8 @@ namespace Eval {
 
   void NNUE::init() {
 
-    useNNUE = Options["Use NNUE"];
-    if (!useNNUE)
+    useNNUE = nnue_mode_from_option(Options["Use NNUE"]);
+    if (useNNUE == UseNNUEMode::False)
         return;
 
     string eval_file = string(Options["EvalFile"]);
@@ -86,18 +100,18 @@ namespace Eval {
     // Support multiple variant networks separated by semicolon(Windows)/colon(Unix)
     stringstream ss(eval_file);
     string variant = string(Options["UCI_Variant"]);
-    useNNUE = false;
+    useNNUE = UseNNUEMode::False;
     while (getline(ss, eval_file, UCI::SepChar))
     {
         string basename = eval_file.substr(eval_file.find_last_of("\\/") + 1);
         string nnueAlias = variants.find(variant)->second->nnueAlias;
         if (basename.rfind(variant, 0) != string::npos || (!nnueAlias.empty() && basename.rfind(nnueAlias, 0) != string::npos))
         {
-            useNNUE = true;
+            useNNUE = UseNNUEMode::True;
             break;
         }
     }
-    if (!useNNUE)
+    if (useNNUE == UseNNUEMode::False)
         return;
 
     currentNnueVariant = variants.find(variant)->second;
@@ -142,7 +156,7 @@ namespace Eval {
 
     string eval_file = string(Options["EvalFile"]);
 
-    if (useNNUE && eval_file.find(eval_file_loaded) == string::npos)
+    if (useNNUE != UseNNUEMode::False && eval_file.find(eval_file_loaded) == string::npos)
     {
         UCI::OptionsMap defaults;
         UCI::init(defaults);
@@ -162,8 +176,8 @@ namespace Eval {
         exit(EXIT_FAILURE);
     }
 
-    if (useNNUE)
-        sync_cout << "info string NNUE evaluation using " << eval_file_loaded << " enabled" << sync_endl;
+    if (useNNUE != UseNNUEMode::False)
+        sync_cout << "info string NNUE evaluation using " << eval_file << " enabled" << sync_endl;
     else
         sync_cout << "info string classical evaluation enabled" << sync_endl;
   }
@@ -1557,18 +1571,27 @@ make_v:
 
 Value Eval::evaluate(const Position& pos) {
 
+  pos.this_thread()->on_eval();
+
   Value v;
 
-  if (!Eval::useNNUE || !pos.nnue_applicable())
+  if (NNUE::useNNUE == NNUE::UseNNUEMode::Pure && pos.nnue_applicable()) {
+      v = NNUE::evaluate(pos);
+
+      // Guarantee evaluation does not hit the tablebase range
+      v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
+
+      return v;
+  }
+  else if (NNUE::useNNUE == NNUE::UseNNUEMode::False || !pos.nnue_applicable())
       v = Evaluation<NO_TRACE>(pos).value();
   else
   {
       // Scale and shift NNUE for compatibility with search and classical evaluation
       auto  adjusted_NNUE = [&]()
       {
-         int scale =   903
-                     + 32 * pos.count<PAWN>()
-                     + 32 * pos.non_pawn_material() / 1024;
+
+         int scale = 1200; // try to avoid divergence in reinforcement learning
 
          Value nnue = NNUE::evaluate(pos, true) * scale / 1024;
 
@@ -1659,14 +1682,14 @@ std::string Eval::trace(Position& pos) {
      << "|      Total | " << Term(TOTAL)
      << "+------------+-------------+-------------+-------------+\n";
 
-  if (Eval::useNNUE && pos.nnue_applicable())
+  if (NNUE::useNNUE != NNUE::UseNNUEMode::False && pos.nnue_applicable())
       ss << '\n' << NNUE::trace(pos) << '\n';
 
   ss << std::showpoint << std::showpos << std::fixed << std::setprecision(2) << std::setw(15);
 
   v = pos.side_to_move() == WHITE ? v : -v;
   ss << "\nClassical evaluation   " << to_cp(v) << " (white side)\n";
-  if (Eval::useNNUE && pos.nnue_applicable())
+  if (NNUE::useNNUE != NNUE::UseNNUEMode::False && pos.nnue_applicable())
   {
       v = NNUE::evaluate(pos, false);
       v = pos.side_to_move() == WHITE ? v : -v;
@@ -1676,7 +1699,7 @@ std::string Eval::trace(Position& pos) {
   v = evaluate(pos);
   v = pos.side_to_move() == WHITE ? v : -v;
   ss << "Final evaluation       " << to_cp(v) << " (white side)";
-  if (Eval::useNNUE && pos.nnue_applicable())
+  if (NNUE::useNNUE != NNUE::UseNNUEMode::False && pos.nnue_applicable())
      ss << " [with scaled NNUE, hybrid, ...]";
   ss << "\n";
 
