@@ -139,12 +139,14 @@ struct Variant {
   bool fastAttacks2 = true;
   std::string nnueAlias = "";
   PieceType nnueKing = KING;
+  int pieceIndex[PIECE_TYPE_NB];
   int nnueDimensions;
   bool nnueUsePockets;
   int pieceSquareIndex[COLOR_NB][PIECE_NB];
   int pieceHandIndex[COLOR_NB][PIECE_NB];
   int kingSquareIndex[SQUARE_NB];
   int nnueMaxPieces;
+  int nnueKingSquare;
   bool endgameEval = false;
 
   void add_piece(PieceType pt, char c, std::string betza = "", char c2 = ' ') {
@@ -224,6 +226,7 @@ struct Variant {
       int i = 0;
       for (PieceType pt : pieceTypes)
       {
+          pieceIndex[pt] = i;
           for (Color c : { WHITE, BLACK})
           {
               pieceSquareIndex[c][make_piece(c, pt)] = 2 * i * nnueSquares;
@@ -237,7 +240,7 @@ struct Variant {
       // Map king squares to enumeration of actually available squares.
       // E.g., for xiangqi map from 0-89 to 0-8.
       // Variants might be initialized before bitboards, so do not rely on precomputed bitboards (like SquareBB).
-      int nnueKingSquare = 0;
+      nnueKingSquare = 0;
       if (nnueKing)
           for (Square s = SQ_A1; s < nnueSquares; ++s)
           {
