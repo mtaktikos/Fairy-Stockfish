@@ -107,6 +107,8 @@ namespace {
     constexpr Direction Down     = -pawn_push(Us);
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
+	constexpr Direction DownRight  = (Us == WHITE ? SOUTH_EAST : NORTH_WEST);
+	constexpr Direction DownLeft  = (Us == WHITE ? SOUTH_WEST : NORTH_EAST);
 	constexpr Direction Right  = (Us == WHITE ? EAST : WEST);
 	constexpr Direction Left  = (Us == WHITE ? WEST : EAST);	
 
@@ -138,10 +140,9 @@ namespace {
     {
         Bitboard b1 = shift<Up>(pawnsNotOn7) & emptySquares;
         Bitboard b2 = pos.double_step_enabled() ? shift<Up>(b1 & TRank3BB) & emptySquares : Bitboard(0);
-		Bitboard b3 = shift<Down>(pawnsOn3) & emptySquares;
-		Bitboard b4 = shift<Down>(pawnsOn5) & emptySquares;
-		Bitboard b5 = shift<Down>(pawnsOn6) & emptySquares;
-		Bitboard b6 = shift<Down>(pawnsOn7) & emptySquares;
+		Bitboard b3 = shift<Down>(pawnsOn5) & emptySquares;
+		Bitboard b4 = shift<Down>(pawnsOn6) & emptySquares;
+		Bitboard b5 = shift<Down>(pawnsOn7) & emptySquares;
 
         if (Type == EVASIONS) // Consider only blocking squares
         {
@@ -150,8 +151,7 @@ namespace {
 			b3 &= target;
             b4 &= target;
 			b5 &= target;
-			b6 &= target;
-        }
+			}
 
         if (Type == QUIET_CHECKS && pos.count<KING>(Them))
         {
@@ -188,11 +188,6 @@ namespace {
 		while (b5)
         {
             Square to = pop_lsb(b5);
-            *moveList++ = make_move(to - Down, to);
-        }
-		while (b6)
-        {
-            Square to = pop_lsb(b6);
             *moveList++ = make_move(to - Down, to);
         }
 	}
@@ -252,7 +247,13 @@ namespace {
     {
         Bitboard b1 = shift<UpRight>(pawnsNotOn7) & enemies;
         Bitboard b2 = shift<UpLeft >(pawnsNotOn7) & enemies;
-
+		Bitboard b3 = shift<DownRight >(pawnsOn5) & enemies;
+		Bitboard b4 = shift<DownLeft >(pawnsOn5) & enemies;
+		Bitboard b5 = shift<DownRight >(pawnsOn6) & enemies;
+		Bitboard b6 = shift<DownLeft >(pawnsOn6) & enemies;
+		Bitboard b7 = shift<DownRight >(pawnsOn7) & enemies;
+		Bitboard b8 = shift<DownLeft >(pawnsOn7) & enemies;
+		
         while (b1)
         {
             Square to = pop_lsb(b1);
@@ -263,6 +264,42 @@ namespace {
         {
             Square to = pop_lsb(b2);
             *moveList++ = make_move(to - UpLeft, to);
+        }
+		
+		 while (b3)
+        {
+            Square to = pop_lsb(b3);
+            *moveList++ = make_move(to - DownRight, to);
+        }
+		
+		 while (b4)
+        {
+            Square to = pop_lsb(b4);
+            *moveList++ = make_move(to - DownLeft, to);
+        }
+		
+		 while (b5)
+        {
+            Square to = pop_lsb(b5);
+            *moveList++ = make_move(to - DownRight, to);
+        }
+		
+		 while (b6)
+        {
+            Square to = pop_lsb(b6);
+            *moveList++ = make_move(to - DownLeft, to);
+        }
+		
+		 while (b7)
+        {
+            Square to = pop_lsb(b7);
+            *moveList++ = make_move(to - DownRight, to);
+        }
+		
+		 while (b8)
+        {
+            Square to = pop_lsb(b8);
+            *moveList++ = make_move(to - DownLeft, to);
         }
 
         if (pos.ep_square() != SQ_NONE)

@@ -198,7 +198,7 @@ namespace {
 		v->nnueAlias = "nn-";
         return v;
     }
-	Variant* petropolis_variant() {
+	Variant* vienna_variant() {
         Variant* v = chess_variant_base()->init();
 		v->pieceToCharTable = ".NBRQ........P.....K.nbrq........p.....k";
         v->nnueAlias = "nn-";
@@ -1376,7 +1376,7 @@ void VariantMap::init() {
     add("chess", chess_variant());
     add("normal", chess_variant());
     //add("fischerandom", chess960_variant());
-	add("petropolis", petropolis_variant());
+	add("vienna", vienna_variant());
     //add("nocastle", nocastle_variant());
     //add("armageddon", armageddon_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
