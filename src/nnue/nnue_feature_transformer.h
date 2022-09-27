@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -403,7 +403,7 @@ namespace Stockfish::Eval::NNUE {
         // accumulator. Then, we update the current accumulator (pos.state()).
 
         // Gather all features to be updated.
-        const Square ksq = pos.nnue_king_square(perspective);
+        const Square ksq = pos.square(perspective, pos.nnue_king());
         IndexList removed[2], added[2];
         FeatureSet::append_changed_indices(
           ksq, next, perspective, removed[0], added[0], pos);

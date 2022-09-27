@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,20 +30,19 @@ namespace Stockfish::Eval::NNUE::Features {
   }
 
   // Orient a square according to perspective (rotates by 180 for black)
-  // Missing kings map to index 0 (SQ_A1)
   inline Square HalfKAv2Variants::orient(Color perspective, Square s, const Position& pos) {
-    return s != SQ_NONE ? to_variant_square(  perspective == WHITE || (pos.capture_the_flag(BLACK) & Rank8BB) ? s
-                                            : flip_rank(s, pos.max_rank()), pos) : SQ_A1;
+    return to_variant_square(  perspective == WHITE || (pos.capture_the_flag(BLACK) & Rank8BB) ? s
+                             : flip_rank(s, pos.max_rank()), pos);
   }
 
   // Index of a feature for a given king position and another piece on some square
   inline IndexType HalfKAv2Variants::make_index(Color perspective, Square s, Piece pc, Square ksq, const Position& pos) {
-    return IndexType(orient(perspective, s, pos) + pos.variant()->pieceSquareIndex[perspective][pc] + pos.variant()->kingSquareIndex[ksq]);
+    return IndexType(orient(perspective, s, pos) + pos.variant()->pieceSquareIndex[perspective][pc] + ksq * pos.variant()->nnuePieceIndices);
   }
 
   // Index of a feature for a given king position and another piece on some square
   inline IndexType HalfKAv2Variants::make_index(Color perspective, int handCount, Piece pc, Square ksq, const Position& pos) {
-    return IndexType(handCount + pos.variant()->pieceHandIndex[perspective][pc] + pos.variant()->kingSquareIndex[ksq]);
+    return IndexType(handCount + pos.variant()->pieceHandIndex[perspective][pc] + ksq * pos.variant()->nnuePieceIndices);
   }
 
   // Get a list of indices for active features
@@ -52,7 +51,7 @@ namespace Stockfish::Eval::NNUE::Features {
     Color perspective,
     ValueListInserter<IndexType> active
   ) {
-    Square oriented_ksq = orient(perspective, pos.nnue_king_square(perspective), pos);
+    Square oriented_ksq = orient(perspective, pos.square(perspective, pos.nnue_king()), pos);
     Bitboard bb = pos.pieces();
     while (bb)
     {
@@ -103,7 +102,7 @@ namespace Stockfish::Eval::NNUE::Features {
   }
 
   bool HalfKAv2Variants::requires_refresh(StateInfo* st, Color perspective, const Position& pos) {
-    return st->dirtyPiece.piece[0] == make_piece(perspective, pos.nnue_king()) || pos.flip_enclosed_pieces();
+    return st->dirtyPiece.piece[0] == make_piece(perspective, pos.nnue_king());
   }
 
 }  // namespace Stockfish::Eval::NNUE::Features

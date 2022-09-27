@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -58,11 +58,11 @@ namespace Stockfish::Eval::NNUE::Features {
     static constexpr IndexType Dimensions = static_cast<IndexType>(SQUARE_NB) * static_cast<IndexType>(SQUARE_NB) * 19;
 
     static IndexType get_dimensions() {
-      return currentNnueVariant->nnueDimensions;
+      return currentNnueVariant->nnueSquares * currentNnueVariant->nnuePieceIndices;
     }
 
     // Maximum number of simultaneously active features.
-    static constexpr IndexType MaxActiveDimensions = 128;
+    static constexpr IndexType MaxActiveDimensions = 64;
 
     // Get a list of indices for active features
     static void append_active_indices(
