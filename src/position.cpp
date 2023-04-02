@@ -183,9 +183,9 @@ void Position::init() {
   std::memset(cuckooMove, 0, sizeof(cuckooMove));
   int count = 0;
   for (Color c : {WHITE, BLACK})
-      for (PieceType pt = KNIGHT; pt <= QUEEN || pt == KING; pt != QUEEN ? ++pt : pt = KING)
+      for (PieceSet ps = CHESS_PIECES & ~piece_set(PAWN); ps;)
       {
-      Piece pc = make_piece(c, pt);
+      Piece pc = make_piece(c, pop_lsb(ps));
       for (Square s1 = SQ_A1; s1 <= SQ_MAX; ++s1)
           for (Square s2 = Square(s1 + 1); s2 <= SQ_MAX; ++s2)
               if ((type_of(pc) != PAWN) && (attacks_bb(c, type_of(pc), s1, 0) & s2))
@@ -349,10 +349,10 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           token = char(toupper(token));
 
           if (token == 'K')
-              for (rsq = make_square(FILE_MAX, castling_rank(c)); !(castling_rook_pieces(c) & type_of(piece_on(rsq))) || color_of(piece_on(rsq)) != c; --rsq) {}
+              for (rsq = make_square(var->castlingRookKingsideFile, castling_rank(c)); !(castling_rook_pieces(c) & type_of(piece_on(rsq))) || color_of(piece_on(rsq)) != c; --rsq) {}
 
           else if (token == 'Q')
-              for (rsq = make_square(FILE_A, castling_rank(c)); !(castling_rook_pieces(c) & type_of(piece_on(rsq))) || color_of(piece_on(rsq)) != c; ++rsq) {}
+              for (rsq = make_square(var->castlingRookQueensideFile, castling_rank(c)); !(castling_rook_pieces(c) & type_of(piece_on(rsq))) || color_of(piece_on(rsq)) != c; ++rsq) {}
 
           else if (token >= 'A' && token <= 'A' + max_file())
               rsq = make_square(File(token - 'A'), castling_rank(c));
@@ -559,9 +559,10 @@ void Position::set_check_info(StateInfo* si) const {
   for (PieceSet ps = piece_types(); ps;)
   {
       PieceType pt = pop_lsb(ps);
-      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, pt, ksq, pieces()) : Bitboard(0);
+      PieceType movePt = pt == KING ? king_type() : pt;
+      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, movePt, ksq, pieces()) : Bitboard(0);
       // Collect special piece types that require slower check and evasion detection
-      if (AttackRiderTypes[pt] & NON_SLIDING_RIDERS)
+      if (AttackRiderTypes[movePt] & NON_SLIDING_RIDERS)
           si->nonSlidingRiders |= pieces(pt);
   }
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
@@ -985,16 +986,36 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
 /// Position::attackers_to_pseudo_royals computes a bitboard of all pieces
 /// of a particular color attacking at least one opposing pseudo-royal piece
 Bitboard Position::attackers_to_pseudo_royals(Color c) const {
+  assert(extinction_pseudo_royal());
   Bitboard attackers = 0;
   Bitboard pseudoRoyals = st->pseudoRoyals & pieces(~c);
   Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(c);
-  while (pseudoRoyals) {
+  while (pseudoRoyals)
+  {
       Square sr = pop_lsb(pseudoRoyals);
-      if (blast_on_capture()
+      if (   blast_on_capture()
           && pseudoRoyalsTheirs & attacks_bb<KING>(sr))
           // skip if capturing this piece would blast all of the attacker's pseudo-royal pieces
           continue;
       attackers |= attackers_to(sr, c);
+  }
+  // Look for duple check
+  if (var->dupleCheck)
+  {
+      Bitboard b;
+      Bitboard allAttackers = 0;
+      Bitboard pseudoRoyalCandidates = st->pseudoRoyalCandidates & pieces(~c);
+      while (pseudoRoyalCandidates)
+      {
+          Square sr = pop_lsb(pseudoRoyalCandidates);
+          if (!(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
+              && (b = attackers_to(sr, c)))
+              allAttackers |= b;
+          else
+              // If at least one isn't attacked, it is not a duple check
+              return attackers;
+      }
+      attackers |= allAttackers;
   }
   return attackers;
 }
@@ -1357,14 +1378,25 @@ bool Position::gives_check(Move m) const {
   if (!count<KING>(~sideToMove))
       return false;
 
+  Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
+  Bitboard janggiCannons = pieces(JANGGI_CANNON);
+  if (type_of(moved_piece(m)) == JANGGI_CANNON)
+      janggiCannons = (type_of(m) == DROP ? janggiCannons : janggiCannons ^ from) | to;
+  else if (janggiCannons & to)
+      janggiCannons ^= to;
+
   // Is there a direct check?
   if (type_of(m) != PROMOTION && type_of(m) != PIECE_PROMOTION && type_of(m) != PIECE_DEMOTION && type_of(m) != CASTLING
       && !(var->petrifyOnCapture && capture(m) && type_of(moved_piece(m)) != PAWN))
   {
       PieceType pt = type_of(moved_piece(m));
-      if (AttackRiderTypes[pt] & (HOPPING_RIDERS | ASYMMETRICAL_RIDERS))
+      if (pt == JANGGI_CANNON)
       {
-          Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
+          if (attacks_bb(sideToMove, pt, to, occupied) & attacks_bb(sideToMove, pt, to, occupied & ~janggiCannons) & square<KING>(~sideToMove))
+              return true;
+      }
+      else if (AttackRiderTypes[pt] & (HOPPING_RIDERS | ASYMMETRICAL_RIDERS))
+      {
           if (attacks_bb(sideToMove, pt, to, occupied) & square<KING>(~sideToMove))
               return true;
       }
@@ -1372,15 +1404,9 @@ bool Position::gives_check(Move m) const {
           return true;
   }
 
-  Bitboard janggiCannons = pieces(JANGGI_CANNON);
-  if (type_of(moved_piece(m)) == JANGGI_CANNON)
-      janggiCannons = (type_of(m) == DROP ? janggiCannons : janggiCannons ^ from) | to;
-  else if (janggiCannons & to)
-      janggiCannons ^= to;
-
   // Is there a discovered check?
   if (  ((type_of(m) != DROP && (blockers_for_king(~sideToMove) & from)) || (non_sliding_riders() & pieces(sideToMove)))
-      && attackers_to(square<KING>(~sideToMove), (type_of(m) == DROP ? pieces() : pieces() ^ from) | to, sideToMove, janggiCannons))
+      && attackers_to(square<KING>(~sideToMove), occupied, sideToMove, janggiCannons) & occupied)
       return true;
 
   // Is there a check by gated pieces?
@@ -1397,7 +1423,6 @@ bool Position::gives_check(Move m) const {
   {
       PieceType pt = type_of(moved_piece(m));
       PieceType diagType = pt == WAZIR ? FERS : pt == SOLDIER ? PAWN : pt == ROOK ? BISHOP : NO_PIECE_TYPE;
-      Bitboard occupied = type_of(m) == DROP ? pieces() : pieces() ^ from;
       if (diagType && (attacks_bb(sideToMove, diagType, to, occupied) & square<KING>(~sideToMove)))
           return true;
       else if (pt == JANGGI_CANNON && (  rider_attacks_bb<RIDER_CANNON_DIAG>(to, occupied)
@@ -1594,9 +1619,23 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       k ^=  Zobrist::psq[pc][to]
           ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] - 1]
           ^ Zobrist::inHand[pc_hand][pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)]];
+
+      // Reset rule 50 counter for irreversible drops
+      st->rule50 = 0;
   }
   else
+  {
       k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
+
+      // Reset rule 50 draw counter for irreversible moves
+      // - irreversible pawn/piece promotions
+      // - irreversible pawn moves
+      if (    type_of(m) == PROMOTION
+          || (type_of(m) == PIECE_PROMOTION && !piece_demotion())
+          || (    (var->nMoveRuleTypes[us] & type_of(pc))
+              && !(PseudoMoves[0][us][type_of(pc)][to] & from)))
+          st->rule50 = 0;
+  }
 
   // Reset en passant squares
   while (st->epSquares)
@@ -1831,10 +1870,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           k ^= Zobrist::enpassant[file_of(pop_lsb(b))];
   }
 
-  // Reset rule 50 draw counter
-  if (var->nMoveRuleTypes[us] & type_of(pc))
-      st->rule50 = 0;
-
   // Set capture piece
   st->capturedPiece = captured;
 
@@ -1979,6 +2014,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st->key = k;
   // Calculate checkers bitboard (if move gives check)
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them), us) & pieces(us) : Bitboard(0);
+  assert(givesCheck == bool(st->checkersBB));
 
   sideToMove = ~sideToMove;
 
