@@ -172,8 +172,8 @@ Value Endgame<KBNK>::operator()(const Position& pos) const {
 template<>
 Value Endgame<KPK>::operator()(const Position& pos) const {
 
-  assert(verify_material(pos, strongSide, VALUE_ZERO, 1));
-  assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
+assert(verify_material(pos, strongSide, VALUE_VIRTUAL_MATE, 1));
+assert(verify_material(pos, weakSide, VALUE_VIRTUAL_LOSS, 0));
 
   // Assume strongSide is white and the pawn is on files A-D
   Square strongKing = normalize(pos, strongSide, pos.square<KING>(strongSide));
