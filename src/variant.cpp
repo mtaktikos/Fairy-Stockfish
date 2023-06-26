@@ -1834,16 +1834,16 @@ void VariantMap::init() {
     // Add to UCI_Variant option
     add("chess", chess_variant());
     add("normal", chess_variant());
-   /* add("fischerandom", chess960_variant());
+    add("fischerandom", chess960_variant());
     add("nocastle", nocastle_variant());
     add("armageddon", armageddon_variant());
     add("torpedo", torpedo_variant());
     add("berolina", berolina_variant());
     add("pawnsideways", pawnsideways_variant());
     add("pawnback", pawnback_variant());
-    add("legan", legan_variant()); */
+    add("legan", legan_variant()); 
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
-  /*  add("makruk", makruk_variant());
+    add("makruk", makruk_variant());
     add("makpong", makpong_variant());
     add("cambodian", cambodian_variant());
     add("karouk", karouk_variant());
@@ -1891,7 +1891,7 @@ void VariantMap::init() {
     add("seirawan", seirawan_variant());
     add("shouse", shouse_variant());
     add("dragon", dragon_variant());
-    add("paradigm", paradigm_variant()); */
+    add("paradigm", paradigm_variant()); 
     add("minishogi", minishogi_variant());
     add("mini", minishogi_variant());
     add("kyotoshogi", kyotoshogi_variant());
@@ -1902,9 +1902,9 @@ void VariantMap::init() {
     add("torishogi", torishogi_variant());
     add("euroshogi", euroshogi_variant());
      add("notchess", notchess_variant());
-     add("rengeshogi", rengeshogi_variant());
+   //  add("rengeshogi", rengeshogi_variant());
      add("ikusashogi", ikusashogi_variant());
-  /*  add("losalamos", losalamos_variant());
+    add("losalamos", losalamos_variant());
     add("gardner", gardner_variant());
     add("almost", almost_variant());
     add("sortofalmost", sortofalmost_variant());
@@ -1919,13 +1919,13 @@ void VariantMap::init() {
     add("flipersi", flipersi_variant());
     add("flipello", flipello_variant());
     add("minixiangqi", minixiangqi_variant());
-    add("raazuvaa", raazuvaa_variant()); */
+    add("raazuvaa", raazuvaa_variant()); 
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant());
     add("shoshogi", shoshogi_variant());
     add("yarishogi", yarishogi_variant());
     add("okisakishogi", okisakishogi_variant());
-   /* add("capablanca", capablanca_variant());
+    add("capablanca", capablanca_variant());
     add("capahouse", capahouse_variant());
     add("caparandom", caparandom_variant());
     add("gothic", gothic_variant());
@@ -1955,7 +1955,7 @@ void VariantMap::init() {
     add("janggi", janggi_variant());
     add("janggitraditional", janggi_traditional_variant());
     add("janggimodern", janggi_modern_variant());
-    add("janggicasual", janggi_casual_variant());*/
+    add("janggicasual", janggi_casual_variant());
 #endif
 }
 
