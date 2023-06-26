@@ -780,6 +780,33 @@ namespace {
         v->nnueAlias = "minishogi";
         return v;
     }
+    //Not Chess
+    //chess variant of shogi with 2 piece types alternating between promotion and demotion
+    //https://glukkazan.github.io/elimination/not-chess.htm
+     Variant* notchess_variant() {
+        Variant* v = minishogi_variant_base()->init();
+         v->maxRank = RANK_8;
+        v->maxFile = FILE_H;
+        v->reset_pieces();
+         v->add_piece(KNIGHT, 'n');
+         v->add_piece(WAZIR, 'l');
+        v->startFen = "1+nn+nn+nn1/8/8/8/8/8/8/1N+NN+NN+N1[-] w 0 1";
+        v->pieceDrops = false;
+        v->capturesToHand = false;
+         v->promotionRegion[WHITE] = AllSquares;
+        v->promotionRegion[BLACK] = AllSquares;
+        v->mandatoryPiecePromotion = true;
+        v->pieceDemotion = true;
+        v->dropPromoted = false;
+        v->promotedPieceType[KNIGHT]        = WAZIR;
+        v->promotedPieceType[WAZIR]         = NO_PIECE_TYPE;
+        v->immobilityIllegal = false;
+        v->shogiPawnDropMateIllegal = false;
+        v->dropNoDoubled = NO_PIECE_TYPE;
+        v->extinctionValue = -VALUE_MATE; 
+        v->extinctionPieceTypes = piece_set(ALL_PIECES);
+        return v;
+    }
     // Kyoto shogi
     // 5x5 variant of shogi with pieces alternating between promotion and demotion
     // https://en.wikipedia.org/wiki/Kyoto_shogi
@@ -805,6 +832,32 @@ namespace {
         v->dropNoDoubled = NO_PIECE_TYPE;
         return v;
     }
+    /* Renge Shogi commented out. Had handled it as a Kyoto Shogi variant, but after finding the rules of Michael Sandeman in https://boardgamegeek.com/boardgame/233264/renge-shogi 
+    it appears that Renge has a complete different capture mechanic.
+    Variant* rengeshogi_variant() {
+        Variant* v = minishogi_variant_base()->init();
+        v->add_piece(LANCE, 'l');
+        v->add_piece(SHOGI_KNIGHT, 'n');
+        v->maxRank = RANK_7;
+        v->maxFile = FILE_G;
+        v->startFen = "spnknps/7/7/7/7/7/SPNKNPS[-] w 0 1 ";
+        v->promotionRegion[WHITE] = AllSquares;
+        v->promotionRegion[BLACK] = AllSquares;
+        v->mandatoryPiecePromotion = true;
+        v->pieceDemotion = true;
+        v->dropPromoted = true;
+        v->promotedPieceType[LANCE]        = GOLD;
+        v->promotedPieceType[SILVER]       = BISHOP;
+        v->promotedPieceType[SHOGI_KNIGHT] = GOLD;
+        v->promotedPieceType[SHOGI_PAWN]   = ROOK;
+        v->promotedPieceType[GOLD]         = NO_PIECE_TYPE;
+        v->promotedPieceType[BISHOP]       = NO_PIECE_TYPE;
+        v->promotedPieceType[ROOK]         = NO_PIECE_TYPE;
+        v->immobilityIllegal = false;
+        v->shogiPawnDropMateIllegal = false;
+        v->dropNoDoubled = NO_PIECE_TYPE;
+        return v;
+    } */
     // Micro shogi
     // 4x5 shogi variant where pieces promoted and demote when capturing
     // https://en.wikipedia.org/wiki/Micro_shogi
@@ -934,6 +987,25 @@ namespace {
         v->mandatoryPiecePromotion = true;
         return v;
     }
+    //Ikusa Shogi
+    //Shogi variant on a custom board
+    //https://glukkazan.github.io/shogi/ikusa-shogi.htm
+     Variant* ikusashogi_variant() {
+        Variant* v = minishogi_variant_base()->init();
+        v->add_piece(LANCE, 'l');
+        v->add_piece(SHOGI_KNIGHT, 'n');
+        v->maxRank = RANK_7;
+        v->maxFile = FILE_E;
+        v->startFen = "**k**/*spg*/5/5/5/*GPS*/**K**[nlrbNLRB] w - - 0 1";
+        v->promotionRegion[WHITE] = Rank5BB | Rank6BB | Rank7BB;
+        v->promotionRegion[BLACK] = Rank3BB | Rank2BB | Rank1BB;
+        v->promotedPieceType[LANCE]        = GOLD;
+        v->promotedPieceType[SHOGI_KNIGHT] = GOLD;       
+       v->dropNoDoubled = NO_PIECE_TYPE;
+        v->nFoldValue = VALUE_DRAW;
+        v->perpetualCheckIllegal = false;
+        return v;
+    } 
     // Los Alamos chess
     // https://en.wikipedia.org/wiki/Los_Alamos_chess
     Variant* losalamos_variant() {
@@ -1762,16 +1834,16 @@ void VariantMap::init() {
     // Add to UCI_Variant option
     add("chess", chess_variant());
     add("normal", chess_variant());
-    add("fischerandom", chess960_variant());
+   /* add("fischerandom", chess960_variant());
     add("nocastle", nocastle_variant());
     add("armageddon", armageddon_variant());
     add("torpedo", torpedo_variant());
     add("berolina", berolina_variant());
     add("pawnsideways", pawnsideways_variant());
     add("pawnback", pawnback_variant());
-    add("legan", legan_variant());
+    add("legan", legan_variant()); */
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
-    add("makruk", makruk_variant());
+  /*  add("makruk", makruk_variant());
     add("makpong", makpong_variant());
     add("cambodian", cambodian_variant());
     add("karouk", karouk_variant());
@@ -1819,7 +1891,7 @@ void VariantMap::init() {
     add("seirawan", seirawan_variant());
     add("shouse", shouse_variant());
     add("dragon", dragon_variant());
-    add("paradigm", paradigm_variant());
+    add("paradigm", paradigm_variant()); */
     add("minishogi", minishogi_variant());
     add("mini", minishogi_variant());
     add("kyotoshogi", kyotoshogi_variant());
@@ -1829,7 +1901,10 @@ void VariantMap::init() {
     add("judkins", judkinsshogi_variant());
     add("torishogi", torishogi_variant());
     add("euroshogi", euroshogi_variant());
-    add("losalamos", losalamos_variant());
+     add("notchess", notchess_variant());
+     add("rengeshogi", rengeshogi_variant());
+     add("ikusashogi", ikusashogi_variant());
+  /*  add("losalamos", losalamos_variant());
     add("gardner", gardner_variant());
     add("almost", almost_variant());
     add("sortofalmost", sortofalmost_variant());
@@ -1844,13 +1919,13 @@ void VariantMap::init() {
     add("flipersi", flipersi_variant());
     add("flipello", flipello_variant());
     add("minixiangqi", minixiangqi_variant());
-    add("raazuvaa", raazuvaa_variant());
+    add("raazuvaa", raazuvaa_variant()); */
 #ifdef LARGEBOARDS
     add("shogi", shogi_variant());
     add("shoshogi", shoshogi_variant());
     add("yarishogi", yarishogi_variant());
     add("okisakishogi", okisakishogi_variant());
-    add("capablanca", capablanca_variant());
+   /* add("capablanca", capablanca_variant());
     add("capahouse", capahouse_variant());
     add("caparandom", caparandom_variant());
     add("gothic", gothic_variant());
@@ -1880,7 +1955,7 @@ void VariantMap::init() {
     add("janggi", janggi_variant());
     add("janggitraditional", janggi_traditional_variant());
     add("janggimodern", janggi_modern_variant());
-    add("janggicasual", janggi_casual_variant());
+    add("janggicasual", janggi_casual_variant());*/
 #endif
 }
 
