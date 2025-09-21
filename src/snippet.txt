@@ -1,0 +1,16 @@
+ if (captures_to_hand())
+      {
+          Piece pieceToHand = !capturedPromoted || drop_loop() ? make_piece(type_of(captured), sideToMove)
+		  				 : unpromotedCaptured ? make_piece(type_of(unpromotedCaptured), sideToMove)
+						                     : make_piece(sideTomove, main_promotion_pawn_type(color_of(captured)));
+		  add_to_hand(pieceToHand);
+          k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
+              ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
+
+          if (Eval::useNNUE)
+          {
+              dp.handPiece[1] = pieceToHand;
+              dp.handCount[1] = pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)];
+          }
+      }
+     
