@@ -1618,6 +1618,41 @@ namespace {
         v->castling = false;
         return v;
     }
+	Variant* eater_variant() {
+        Variant* v =  chess_variant_base()->init();
+		 v->pieceToCharTable = "PNBR...AM............Kpnbr...am............k";
+        v->maxRank = RANK_9;
+        v->maxFile = FILE_I;
+		   v->remove_piece(KNIGHT);
+		   v->remove_piece(BISHOP);
+		   v->remove_piece(ROOK);
+		   v->remove_piece(QUEEN);		   
+        v->add_piece(CHANCELLOR, 'm'); 
+        v->add_piece(ARCHBISHOP, 'a'); 
+		  v->add_piece(CUSTOM_PIECE_1, 'n',"NN"); 
+		v->add_piece(CUSTOM_PIECE_2, 'r', "rlRfbW"); 
+        v->add_piece(CUSTOM_PIECE_3, 'b', "AADD"); 
+		v->pieceValue[MG][CUSTOM_PIECE_1] = 562;
+		v->pieceValue[EG][CUSTOM_PIECE_1] = 583;
+		v->pieceValue[MG][CUSTOM_PIECE_2] = 457;
+		v->pieceValue[EG][CUSTOM_PIECE_2] = 431;
+		v->pieceValue[MG][CUSTOM_PIECE_3] = 567;
+		v->pieceValue[EG][CUSTOM_PIECE_3] = 587;
+		v->pieceValue[MG][PAWN] = 127;
+		v->pieceValue[EG][PAWN] = 75;
+		v->pieceValue[MG][CHANCELLOR] = 982;
+		v->pieceValue[EG][CHANCELLOR] = 983;
+		v->pieceValue[MG][ARCHBISHOP] = 799;
+		v->pieceValue[EG][ARCHBISHOP] = 785; 
+        v->startFen = "nnnbkbnnn/mmmbrbmmm/aaarrraaa/ppppppppp/9/PPPPPPPPP/AAARRRAAA/MMMBRBMMM/NNNBKBNNN w - - 0 1";
+		  v->promotionRegion[WHITE] = Rank6BB;
+        v->promotionRegion[BLACK] = Rank4BB;
+		v->promotionPieceTypes[WHITE] = piece_set(CUSTOM_PIECE_3) | CUSTOM_PIECE_2 | CUSTOM_PIECE_1 | CHANCELLOR | ROOK | ARCHBISHOP;
+        v->promotionPieceTypes[BLACK] = piece_set(CUSTOM_PIECE_3) | CUSTOM_PIECE_2 | CUSTOM_PIECE_1 | CHANCELLOR | ARCHBISHOP;
+		v->doubleStep = false;
+        v->castling = false;
+        return v;
+    } 
     // Wolf chess
     // https://en.wikipedia.org/wiki/Wolf_chess
     Variant* wolf_variant() {
@@ -1939,6 +1974,7 @@ void VariantMap::init() {
     add("omicron", omicron_variant());
     add("troitzky", troitzky_variant());
     add("wolf", wolf_variant());
+	add("eater", eater_variant()); 
     add("shako", shako_variant());
     add("clobber10", clobber10_variant());
     add("flipello10", flipello10_variant());
