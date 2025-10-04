@@ -151,10 +151,14 @@ extern Magic CannonMagicsH[SQUARE_NB];
 extern Magic CannonMagicsV[SQUARE_NB];
 extern Magic LameDabbabaMagics[SQUARE_NB];
 extern Magic HorseMagics[SQUARE_NB];
+extern Magic JamalMagics[SQUARE_NB];
 extern Magic ElephantMagics[SQUARE_NB];
 extern Magic JanggiElephantMagics[SQUARE_NB];
 extern Magic CannonDiagMagics[SQUARE_NB];
 extern Magic NightriderMagics[SQUARE_NB];
+extern Magic CamelriderMagics[SQUARE_NB];
+extern Magic AlfilriderMagics[SQUARE_NB]; 
+extern Magic DabbabariderMagics[SQUARE_NB];
 extern Magic GrasshopperMagicsH[SQUARE_NB];
 extern Magic GrasshopperMagicsV[SQUARE_NB];
 extern Magic GrasshopperMagicsD[SQUARE_NB];
@@ -410,10 +414,14 @@ inline Bitboard rider_attacks_bb(Square s, Bitboard occupied) {
                   : R == RIDER_CANNON_V ? CannonMagicsV[s]
                   : R == RIDER_LAME_DABBABA ? LameDabbabaMagics[s]
                   : R == RIDER_HORSE ? HorseMagics[s]
+                  : R == RIDER_JAMAL ? JamalMagics[s]
                   : R == RIDER_ELEPHANT ? ElephantMagics[s]
                   : R == RIDER_JANGGI_ELEPHANT ? JanggiElephantMagics[s]
                   : R == RIDER_CANNON_DIAG ? CannonDiagMagics[s]
                   : R == RIDER_NIGHTRIDER ? NightriderMagics[s]
+                  : R == RIDER_CAMELRIDER ? CamelriderMagics[s]
+                  : R == RIDER_ALFILRIDER ? AlfilriderMagics[s]  
+                  : R == RIDER_DABBABARIDER ? DabbabariderMagics[s]
                   : R == RIDER_GRASSHOPPER_H ? GrasshopperMagicsH[s]
                   : R == RIDER_GRASSHOPPER_V ? GrasshopperMagicsV[s]
                   : R == RIDER_GRASSHOPPER_D ? GrasshopperMagicsD[s]
