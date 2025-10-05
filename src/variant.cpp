@@ -65,7 +65,7 @@ namespace {
         v->castling = false;
         return v;
     }
-    // Armageddon Chess
+	// Armageddon Chess
     // https://en.wikipedia.org/wiki/Fast_chess#Armageddon
     Variant* armageddon_variant() {
         Variant* v = chess_variant()->init();
@@ -596,7 +596,7 @@ namespace {
         v->flagRegion[WHITE] = Rank8BB;
         return v;
     }
-
+	
     // Three-check chess
     // Check the king three times to win
     // https://lichess.org/variant/threeCheck
@@ -614,6 +614,7 @@ namespace {
         v->nnueAlias = "3check";
         return v;
     }
+
     // Crazyhouse
     // Chess with piece drops
     // https://en.wikipedia.org/wiki/Crazyhouse
@@ -625,6 +626,7 @@ namespace {
         v->capturesToHand = true;
         return v;
     }
+	
     // Loop chess
     // Variant of crazyhouse where promoted pawns are not demoted when captured
     // https://en.wikipedia.org/wiki/Crazyhouse#Variations
@@ -634,6 +636,27 @@ namespace {
         v->nnueAlias = "crazyhouse";
         return v;
     }
+	
+	//Capture-Anything
+	// https://www.chess.com/terms/capture-anything-chess
+   Variant* captureanything_variant() {
+	   Variant* v = chess_variant_base()->init();
+	    v->castling = false;
+        v->selfCapture = true;
+	     return v;
+    }
+
+    //RecycleChess
+    //	# https://brainking.com/en/GameRules?tp=9
+    Variant* recycle_variant() {
+	 Variant* v = crazyhouse_variant()->init(); 
+	     	  v->dropLoop = true;
+			   v->doubleStep = false;
+        v->castling = false;
+                  v->selfCapture = true;
+				  return v;
+    }	   
+
     // Chessgi
     // Variant of loop chess where pawns can be dropped to the first rank
     // https://en.wikipedia.org/wiki/Crazyhouse#Variations
@@ -1142,6 +1165,23 @@ namespace {
         v->flagRegion[BLACK] = Rank1BB;
         return v;
     }
+   Variant* pieces19_variant() {
+        Variant* v = chess_variant_base()->init();
+		v->pieceValue[MG][PAWN] = 220;
+		v->pieceValue[EG][PAWN] = 450;
+		v->pieceValue[MG][KNIGHT] = 550;
+		v->pieceValue[EG][KNIGHT] = 650;
+		v->pieceValue[MG][BISHOP] = 600;
+		v->pieceValue[EG][BISHOP] = 680;
+		v->pieceValue[MG][ROOK] = 900;
+		v->pieceValue[EG][ROOK] = 780;
+		v->pieceValue[MG][QUEEN] = 1500;
+		v->pieceValue[EG][QUEEN] = 880;
+		v->materialCounting = UNWEIGHTED_MATERIAL;
+		v->nMoveRule = 1000;
+        return v;
+    }
+    
     // Ataxx
     // https://en.wikipedia.org/wiki/Ataxx
     Variant* ataxx_variant() {
@@ -1838,7 +1878,8 @@ void VariantMap::init() {
     add("pawnback", pawnback_variant());
     add("legan", legan_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
-    add("makruk", makruk_variant());
+    add("pieces19",pieces19_variant());   
+   add("makruk", makruk_variant());
     add("makpong", makpong_variant());
     add("cambodian", cambodian_variant());
     add("karouk", karouk_variant());
@@ -1872,6 +1913,8 @@ void VariantMap::init() {
     add("isolation7x7", isolation7x7_variant());
     add("snailtrail", snailtrail_variant());
     add("fox-and-hounds", fox_and_hounds_variant());
+	add("captureanything", captureanything_variant());
+	add("recycle", recycle_variant());
 #ifdef ALLVARS
     add("duck", duck_variant());
 #endif
