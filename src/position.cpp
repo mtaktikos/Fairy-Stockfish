@@ -1210,6 +1210,14 @@ bool Position::legal(Move m) const {
   )
   return false;
 
+  // Iron pieces: any attempt to capture them is illegal (but they can capture normally)
+  if (capture(m)) {
+      Square csq = (type_of(m) == EN_PASSANT) ? capture_square(to) : to;
+      Piece  cpc = piece_on(csq);
+      if (cpc != NO_PIECE && (iron_piece_types() & type_of(cpc)))
+          return false;
+  }
+
   // En passant captures are a tricky special case. Because they are rather
   // uncommon, we do it simply by testing whether the king is attacked after
   // the move is made.
@@ -1254,6 +1262,21 @@ bool Position::legal(Move m) const {
   }
 
   Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
+
+  bool gatingCreatesExtinctionPiece =   gating_type(m) != NO_PIECE_TYPE
+                                     && (extinction_piece_types() & piece_set(gating_type(m)));
+
+  if (   is_gating(m)
+      && (   gating_type(m) == KING
+          || (   gatingCreatesExtinctionPiece
+              && (extinction_pseudo_royal() || extinction_first_capture()))))
+  {
+      Bitboard occ = occupied | gating_square(m);
+      if (type_of(m) == EN_PASSANT)
+          occ ^= capture_square(to);
+      if (attackers_to(gating_square(m), occ, ~us))
+          return false;
+  }
 
   // Flying general rule and bikjang
   // In case of bikjang passing is always allowed, even when in check
@@ -1362,9 +1385,16 @@ bool Position::pseudo_legal(const Move m) const {
   if (pc == NO_PIECE || color_of(pc) != us)
       return false;
 
-  // The destination square cannot be occupied by a friendly piece
+  // The destination square cannot be occupied by a friendly piece unless self capture is allowed
   if (pieces(us) & to)
-      return false;
+  {
+      if (!(self_capture() && capture(m)))
+          return false;
+
+      // Friendly kings are never capturable, even when self-capture is enabled
+      if (type_of(piece_on(to)) == COMMONER)
+          return false;
+  }
 
   // Handle the special case of a pawn move
   if (type_of(pc) == PAWN)
@@ -1374,7 +1404,8 @@ bool Position::pseudo_legal(const Move m) const {
       if (mandatory_pawn_promotion() && (promotion_zone(us) & to) && !sittuyin_promotion())
           return false;
 
-      if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to)     // Not a capture
+      if (   !(pawn_attacks_bb(us, from)
+              & (self_capture() ? pieces() : pieces(~us)) & to)     // Not a capture
           && !((from + pawn_push(us) == to) && !(pieces() & to)) // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)               // Not a double push
                && (double_step_region(us) & from)
@@ -1584,7 +1615,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st->pass = is_pass(m);
 
   assert(color_of(pc) == us);
-  assert(captured == NO_PIECE || color_of(captured) == (type_of(m) != CASTLING ? them : us));
+  assert(captured == NO_PIECE
+         || (type_of(m) == CASTLING
+             ? color_of(captured) == us
+             : (color_of(captured) == them
+                || (self_capture() && color_of(captured) == us))));
   assert(type_of(captured) != KING);
 
   if (check_counting() && givesCheck)
@@ -1621,7 +1656,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       if (type_of(captured) == PAWN)
           st->pawnKey ^= Zobrist::psq[captured][capsq];
       else
-          st->nonPawnMaterial[them] -= PieceValue[MG][captured];
+          st->nonPawnMaterial[color_of(captured)] -= PieceValue[MG][captured];
 
       if (Eval::useNNUE)
       {
@@ -1640,10 +1675,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           board[capsq] = NO_PIECE;
       if (captures_to_hand())
       {
-          Piece pieceToHand = !capturedPromoted || drop_loop() ? ~captured
-                             : unpromotedCaptured ? ~unpromotedCaptured
-                                                  : make_piece(~color_of(captured), main_promotion_pawn_type(color_of(captured)));
-          add_to_hand(pieceToHand);
+           Piece pieceToHand = !capturedPromoted || drop_loop() ? make_piece(sideToMove, type_of(captured))
+		  				 : unpromotedCaptured ? make_piece(sideToMove, type_of(unpromotedCaptured))
+						                     : make_piece(sideToMove, main_promotion_pawn_type(color_of(captured)));
+		  add_to_hand(pieceToHand);
           k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
 
@@ -1653,6 +1688,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               dp.handCount[1] = pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)];
           }
       }
+ 	  
       else if (Eval::useNNUE)
           dp.handPiece[1] = NO_PIECE;
 
@@ -1947,15 +1983,24 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           // Add gating piece
           dp.piece[dp.dirty_num] = gating_piece;
-          dp.handPiece[dp.dirty_num] = gating_piece;
-          dp.handCount[dp.dirty_num] = pieceCountInHand[us][gating_type(m)];
+          if (gating_from_hand())
+          {
+              dp.handPiece[dp.dirty_num] = gating_piece;
+              dp.handCount[dp.dirty_num] = pieceCountInHand[us][gating_type(m)];
+          }
+          else
+          {
+              dp.handPiece[dp.dirty_num] = NO_PIECE;
+              dp.handCount[dp.dirty_num] = 0;
+          }
           dp.from[dp.dirty_num] = SQ_NONE;
           dp.to[dp.dirty_num] = gate;
           dp.dirty_num++;
       }
 
       put_piece(gating_piece, gate);
-      remove_from_hand(gating_piece);
+      if (gating_from_hand())
+          remove_from_hand(gating_piece);
 
       st->gatesBB[us] ^= gate;
       k ^= Zobrist::psq[gating_piece][gate];
@@ -1970,8 +2015,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->gatesBB[us] ^= from;
       if (type_of(m) == CASTLING && (gates(us) & to_sq(m)))
           st->gatesBB[us] ^= to_sq(m);
-      if (gates(them) & to)
-          st->gatesBB[them] ^= to;
+      Square captureGate = to;
+      if (type_of(m) == EN_PASSANT)
+          captureGate = st->captureSquare;
+      if (gates(them) & captureGate)
+          st->gatesBB[them] ^= captureGate;
       if (seirawan_gating() && count_in_hand(us, ALL_PIECES) == 0 && !captures_to_hand())
           st->gatesBB[us] = 0;
   }
@@ -2183,7 +2231,8 @@ void Position::undo_move(Move m) {
       Piece gating_piece = make_piece(us, gating_type(m));
       remove_piece(gating_square(m));
       board[gating_square(m)] = NO_PIECE;
-      add_to_hand(gating_piece);
+      if (gating_from_hand())
+          add_to_hand(gating_piece);
       st->gatesBB[us] |= gating_square(m);
   }
 
@@ -2444,6 +2493,10 @@ Value Position::blast_see(Move m) const {
   }
   else
   {
+      if (   extinction_first_capture()
+          && piece_on(to)
+          && (extinction_piece_types() & type_of(piece_on(to))))
+          return -extinction_value();
       if (extinctsUs)
           return extinction_value();
       if (extinctsThem)
@@ -2477,6 +2530,10 @@ bool Position::see_ge(Move m, Value threshold) const {
       return blast_see(m) >= threshold;
 
   // Extinction
+  if (   extinction_first_capture()
+      && piece_on(to)
+      && (extinction_piece_types() & type_of(piece_on(to))))
+      return extinction_value() < VALUE_ZERO;
   if (   extinction_value() != VALUE_NONE
       && piece_on(to)
       && (   (   (extinction_piece_types() & type_of(piece_on(to)))
@@ -2489,7 +2546,11 @@ bool Position::see_ge(Move m, Value threshold) const {
   if (must_capture() || !checking_permitted() || is_gating(m) || count<CLOBBER_PIECE>() == count<ALL_PIECES>())
       return VALUE_ZERO >= threshold;
 
-  int swap = PieceValue[MG][piece_on(to)] - threshold;
+  Piece victim = piece_on(to);
+  int victimValue = PieceValue[MG][victim];
+  if (victim != NO_PIECE && color_of(victim) == color_of(moved_piece(m)) && self_capture())
+      victimValue = -victimValue;
+  int swap = victimValue - threshold;
   if (swap < 0)
       return false;
 
@@ -2752,6 +2813,21 @@ bool Position::is_optional_game_end(Value& result, int ply, int countStarted) co
 
 bool Position::is_immediate_game_end(Value& result, int ply) const {
 
+  if (extinction_first_capture() && captured_piece() != NO_PIECE)
+  {
+      Piece captured = captured_piece();
+      PieceType capturedType = type_of(captured);
+      Color capturedColor = color_of(captured);
+      if (   (extinction_piece_types() & piece_set(capturedType))
+          && capturedColor == sideToMove
+          && (   !(extinction_must_appear() & piece_set(capturedType))
+              || (st->extinctionSeen[capturedColor] & piece_set(capturedType))))
+      {
+          result = extinction_value(ply);
+          return true;
+      }
+  }
+
   // Extinction
   // Extinction does not apply for pseudo-royal pieces, because they can not be captured
   if (extinction_value() != VALUE_NONE && (!var->extinctionPseudoRoyal || blast_on_capture()))
@@ -2760,6 +2836,8 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           for (PieceSet ps = extinction_piece_types(); ps;)
           {
               PieceType pt = pop_lsb(ps);
+              if ((extinction_must_appear() & piece_set(pt)) && !(st->extinctionSeen[c] & piece_set(pt)))
+                  continue;
               if (   count_with_hand( c, pt) <= var->extinctionPieceCount
                   && count_with_hand(~c, pt) >= var->extinctionOpponentPieceCount + (extinction_claim() && c == sideToMove))
               {

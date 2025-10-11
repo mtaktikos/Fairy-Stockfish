@@ -596,7 +596,7 @@ namespace {
         v->flagRegion[WHITE] = Rank8BB;
         return v;
     }
-
+	
     // Three-check chess
     // Check the king three times to win
     // https://lichess.org/variant/threeCheck
@@ -614,6 +614,7 @@ namespace {
         v->nnueAlias = "3check";
         return v;
     }
+
     // Crazyhouse
     // Chess with piece drops
     // https://en.wikipedia.org/wiki/Crazyhouse
@@ -625,6 +626,7 @@ namespace {
         v->capturesToHand = true;
         return v;
     }
+	
     // Loop chess
     // Variant of crazyhouse where promoted pawns are not demoted when captured
     // https://en.wikipedia.org/wiki/Crazyhouse#Variations
@@ -634,6 +636,29 @@ namespace {
         v->nnueAlias = "crazyhouse";
         return v;
     }
+	
+	//Capture-Anything
+	// https://www.chess.com/terms/capture-anything-chess
+   Variant* captureanything_variant() {
+	   Variant* v = chess_variant_base()->init();
+	   v->selfCapture = true;
+	     return v;
+    }
+
+	//RecycleChess
+    //	# https://brainking.com/en/GameRules?tp=9
+    Variant* recycle_variant() {
+	 Variant* v = crazyhouse_variant()->init();
+	 		v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k'); 
+		  v->dropLoop = true;
+      		 v->selfCapture = true; 
+		 v->castling = false;
+		   v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = piece_set(COMMONER);
+       return v;
+    }	   
+  
     // Chessgi
     // Variant of loop chess where pawns can be dropped to the first rank
     // https://en.wikipedia.org/wiki/Crazyhouse#Variations
@@ -737,6 +762,48 @@ namespace {
         v->promotionPieceTypes[BLACK] = piece_set(ARCHBISHOP) | CHANCELLOR | QUEEN | ROOK | BISHOP | KNIGHT;
         return v;
     }
+    // Battle of the Kings
+    // https://www.chessvariants.com/rules/battle-of-kings-
+    Variant* battle_kings_variant() {
+        Variant* v = chess_variant_base()->init();
+			v->remove_piece(KING);
+        v->add_piece(COMMONER, 'k'); 
+		v->pieceValue[MG][COMMONER] = -3500;
+		v->pieceValue[EG][COMMONER] = -3500;
+		v->pieceValue[MG][PAWN] = 1880;
+		v->pieceValue[EG][PAWN] = 1750;
+		v->pieceValue[MG][KNIGHT] = 1780;
+		v->pieceValue[EG][KNIGHT] = 1650;
+		v->pieceValue[MG][BISHOP] = 620;
+		v->pieceValue[EG][BISHOP] = 700;
+		v->pieceValue[MG][ROOK] =280;
+		v->pieceValue[EG][ROOK]=380;
+		v->pieceValue[MG][QUEEN] = 20;
+		v->pieceValue[EG][QUEEN] = 20;
+        v->startFen = "8/pppppppp/8/8/8/8/PPPPPPPP/8 w - - 0 1";
+        v->castling = false;
+        v->gating = true;
+        v->gatingFromHand = false;
+        for (Color c : {WHITE, BLACK})
+        {
+            v->gatingPieceAfter[c][PAWN] = KNIGHT;
+            v->gatingPieceAfter[c][KNIGHT] = BISHOP;
+            v->gatingPieceAfter[c][BISHOP] = ROOK;
+            v->gatingPieceAfter[c][ROOK] = QUEEN;
+            v->gatingPieceAfter[c][QUEEN] = COMMONER;
+        }
+        v->stalemateValue = -VALUE_MATE;
+        v->nMoveRule = 0;
+        v->nFoldRule = 2;
+        v->nFoldValue = VALUE_MATE;
+        v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = piece_set(COMMONER);
+        v->extinctionMustAppear = piece_set(COMMONER);
+     //   v->extinctionPseudoRoyal = true;
+        v->extinctionFirstCaptureWins = true;
+        return v;
+    }
+	
     // S-House
     // A hybrid variant of S-Chess and Crazyhouse.
     // Pieces in the pocket can either be gated or dropped.
@@ -1872,6 +1939,8 @@ void VariantMap::init() {
     add("isolation7x7", isolation7x7_variant());
     add("snailtrail", snailtrail_variant());
     add("fox-and-hounds", fox_and_hounds_variant());
+	add("captureanything", captureanything_variant());
+	add("recycle", recycle_variant());
 #ifdef ALLVARS
     add("duck", duck_variant());
 #endif
@@ -1887,6 +1956,7 @@ void VariantMap::init() {
     add("placement", placement_variant());
     add("sittuyin", sittuyin_variant());
     add("seirawan", seirawan_variant());
+    add("battlekings", battle_kings_variant());
     add("shouse", shouse_variant());
     add("dragon", dragon_variant());
     add("paradigm", paradigm_variant());
