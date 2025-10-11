@@ -770,6 +770,8 @@ namespace {
 		 v->castlingKingPiece[WHITE] = v->castlingKingPiece[BLACK] = COMMONER;
 		 v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk] w - - 0 1";
         v->pieceDrops = true;
+		 v->pocketSize = 8;
+       		  v->enclosingDrop = ATAXX;
         v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = piece_set(COMMONER);
 		v->extinctionFirstCaptureWins = true;
