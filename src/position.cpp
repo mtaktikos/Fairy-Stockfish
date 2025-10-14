@@ -1820,7 +1820,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
           st->promotionPawn = piece_on(to);
           remove_piece(to);
-          put_piece(promotion, to, true, type_of(m) == PIECE_PROMOTION ? pc : NO_PIECE);
+          // For Vivarta, don't use shogi-style promotion - just replace the piece
+          bool isVivartaVariant = var->variantTemplate == "vivarta";
+          if (isVivartaVariant && type_of(m) == PIECE_PROMOTION)
+              put_piece(promotion, to, false, NO_PIECE);
+          else
+              put_piece(promotion, to, true, type_of(m) == PIECE_PROMOTION ? pc : NO_PIECE);
 
           if (Eval::useNNUE)
           {
@@ -1872,9 +1877,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   else if (type_of(m) == PROMOTION || type_of(m) == PIECE_PROMOTION)
   {
       PieceType promotionType;
+      bool isVivartaVariant = var->variantTemplate == "vivarta";
       
       // Vivarta chess: Special handling for Queen demotion
-      if (var->variantTemplate == "vivarta" && type_of(m) == PIECE_PROMOTION && type_of(pc) == QUEEN)
+      if (isVivartaVariant && type_of(m) == PIECE_PROMOTION && type_of(pc) == QUEEN)
       {
           Rank toRank = rank_of(to);
           // Queen demotes to Pawn on ranks 2-7, stays Queen on ranks 1 and 8
@@ -1892,7 +1898,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
       st->promotionPawn = piece_on(to);
       remove_piece(to);
-      put_piece(promotion, to, true, type_of(m) == PIECE_PROMOTION ? pc : NO_PIECE);
+      // For Vivarta, don't use shogi-style promotion - just replace the piece
+      if (isVivartaVariant && type_of(m) == PIECE_PROMOTION)
+          put_piece(promotion, to, false, NO_PIECE);
+      else
+          put_piece(promotion, to, true, type_of(m) == PIECE_PROMOTION ? pc : NO_PIECE);
 
       if (Eval::useNNUE)
       {
