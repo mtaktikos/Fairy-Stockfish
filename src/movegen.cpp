@@ -190,22 +190,49 @@ namespace {
     // Single and double pawn pushes, no promotions
     if (Type != CAPTURES)
     {
-        while (b1)
+        // Vivarta chess: All pawn moves auto-promote to Knight
+        bool isVivarta = pos.variant()->variantTemplate == "vivarta";
+        
+        if (isVivarta)
         {
-            Square to = pop_lsb(b1);
-            moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - Up, to);
-        }
+            // All pawn moves are PIECE_PROMOTION moves in Vivarta
+            while (b1)
+            {
+                Square to = pop_lsb(b1);
+                *moveList++ = make<PIECE_PROMOTION>(to - Up, to);
+            }
 
-        while (b2)
-        {
-            Square to = pop_lsb(b2);
-            moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - Up - Up, to);
-        }
+            while (b2)
+            {
+                Square to = pop_lsb(b2);
+                *moveList++ = make<PIECE_PROMOTION>(to - Up - Up, to);
+            }
 
-        while (b3)
+            while (b3)
+            {
+                Square to = pop_lsb(b3);
+                *moveList++ = make<PIECE_PROMOTION>(to - Up - Up - Up, to);
+            }
+        }
+        else
         {
-            Square to = pop_lsb(b3);
-            moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - Up - Up - Up, to);
+            while (b1)
+            {
+                Square to = pop_lsb(b1);
+                moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - Up, to);
+            }
+
+            while (b2)
+            {
+                Square to = pop_lsb(b2);
+                moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - Up - Up, to);
+            }
+
+            while (b3)
+            {
+                Square to = pop_lsb(b3);
+                moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - Up - Up - Up, to);
+            }
         }
     }
 
@@ -252,16 +279,36 @@ namespace {
     // Standard and en passant captures
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
     {
-        while (brc)
+        // Vivarta chess: Pawn captures also auto-promote
+        bool isVivarta = pos.variant()->variantTemplate == "vivarta";
+        
+        if (isVivarta)
         {
-            Square to = pop_lsb(brc);
-            moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - UpRight, to);
-        }
+            while (brc)
+            {
+                Square to = pop_lsb(brc);
+                *moveList++ = make<PIECE_PROMOTION>(to - UpRight, to);
+            }
 
-        while (blc)
+            while (blc)
+            {
+                Square to = pop_lsb(blc);
+                *moveList++ = make<PIECE_PROMOTION>(to - UpLeft, to);
+            }
+        }
+        else
         {
-            Square to = pop_lsb(blc);
-            moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - UpLeft, to);
+            while (brc)
+            {
+                Square to = pop_lsb(brc);
+                moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - UpRight, to);
+            }
+
+            while (blc)
+            {
+                Square to = pop_lsb(blc);
+                moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, to - UpLeft, to);
+            }
         }
 
         for (Bitboard epSquares = pos.ep_squares() & ~pos.pieces(); epSquares; )
@@ -304,7 +351,19 @@ namespace {
         Bitboard b1 = b & target;
         Bitboard promotion_zone = pos.promotion_zone(Us);
         PieceType promPt = pos.promoted_piece_type(Pt);
+        
+        // Vivarta chess: All pieces (except King) auto-promote on every move
+        bool isVivarta = pos.variant()->variantTemplate == "vivarta";
         Bitboard b2 = promPt && (!pos.promotion_limit(promPt) || pos.promotion_limit(promPt) > pos.count(Us, promPt)) ? b1 : Bitboard(0);
+        
+        // For Vivarta, enable piece promotion for Knight, Bishop, Rook
+        if (isVivarta && (Pt == KNIGHT || Pt == BISHOP || Pt == ROOK))
+            b2 = b1;
+        
+        // For Vivarta Queen, handle special demotion logic (handled in do_move, not here)
+        if (isVivarta && Pt == QUEEN)
+            b2 = b1; // Queens always transform when moving
+            
         Bitboard b3 = pos.piece_demotion() && pos.is_promoted(from) ? b1 : Bitboard(0);
         Bitboard pawnPromotions = (pos.promotion_pawn_types(Us) & Pt) ? (b & (Type == EVASIONS ? target : ~pos.pieces(Us)) & promotion_zone) : Bitboard(0);
         Bitboard epSquares = (pos.en_passant_types(Us) & Pt) ? (attacks & ~quiets & pos.ep_squares() & ~pos.pieces()) : Bitboard(0);
@@ -316,7 +375,8 @@ namespace {
         // Restrict target squares considering promotion zone
         if (b2 | b3)
         {
-            if (pos.mandatory_piece_promotion())
+            // For Vivarta, don't restrict moves - all moves should promote
+            if (!isVivarta && pos.mandatory_piece_promotion())
                 b1 &= (promotion_zone & from ? Bitboard(0) : ~promotion_zone) | (pos.piece_promotion_on_capture() ? ~pos.pieces() : Bitboard(0));
             // Exclude quiet promotions/demotions
             if (pos.piece_promotion_on_capture())
@@ -325,11 +385,14 @@ namespace {
                 b3 &= pos.pieces();
             }
             // Consider promotions/demotions into promotion zone
-            if (!(promotion_zone & from))
+            if (!isVivarta && !(promotion_zone & from))
             {
                 b2 &= promotion_zone;
                 b3 &= promotion_zone;
             }
+            // For Vivarta, all moves are promotions (no normal moves)
+            if (isVivarta)
+                b1 = Bitboard(0);
         }
 
         if (Type == QUIET_CHECKS)

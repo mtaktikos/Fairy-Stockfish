@@ -133,6 +133,24 @@ namespace {
         v->doubleStep = false;
         return v;
     }
+    // Vivarta Chess
+    // A chess variant with perpetual promotion
+    Variant* vivarta_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->variantTemplate = "vivarta";
+        v->startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
+        v->castling = false;
+        v->enPassantRegion[WHITE] = 0;
+        v->enPassantRegion[BLACK] = 0;
+        // Set up promotion mappings for perpetual promotion cycle
+        // Pawn -> Knight, Knight -> Bishop, Bishop -> Rook, Rook -> Queen
+        v->promotedPieceType[PAWN] = KNIGHT;
+        v->promotedPieceType[KNIGHT] = BISHOP;
+        v->promotedPieceType[BISHOP] = ROOK;
+        v->promotedPieceType[ROOK] = QUEEN;
+        v->promotedPieceType[QUEEN] = NO_PIECE_TYPE; // Queen special handling
+        return v;
+    }
     // Pseudo-variant only used for endgame initialization
     Variant* fairy_variant() {
         Variant* v = chess_variant_base()->init();
@@ -1837,6 +1855,7 @@ void VariantMap::init() {
     add("pawnsideways", pawnsideways_variant());
     add("pawnback", pawnback_variant());
     add("legan", legan_variant());
+    add("vivarta", vivarta_variant());
     add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
     add("makruk", makruk_variant());
     add("makpong", makpong_variant());

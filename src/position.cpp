@@ -1871,7 +1871,24 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
   else if (type_of(m) == PROMOTION || type_of(m) == PIECE_PROMOTION)
   {
-      Piece promotion = make_piece(us, type_of(m) == PROMOTION ? promotion_type(m) : promoted_piece_type(type_of(pc)));
+      PieceType promotionType;
+      
+      // Vivarta chess: Special handling for Queen demotion
+      if (var->variantTemplate == "vivarta" && type_of(m) == PIECE_PROMOTION && type_of(pc) == QUEEN)
+      {
+          Rank toRank = rank_of(to);
+          // Queen demotes to Pawn on ranks 2-7, stays Queen on ranks 1 and 8
+          if (toRank == RANK_1 || toRank == RANK_8)
+              promotionType = QUEEN;
+          else
+              promotionType = PAWN;
+      }
+      else
+      {
+          promotionType = type_of(m) == PROMOTION ? promotion_type(m) : promoted_piece_type(type_of(pc));
+      }
+      
+      Piece promotion = make_piece(us, promotionType);
 
       st->promotionPawn = piece_on(to);
       remove_piece(to);
