@@ -197,6 +197,8 @@ public:
   Bitboard promoted_soldiers(Color c) const;
   bool makpong() const;
   EnclosingRule flip_enclosed_pieces() const;
+  PieceType transparent_piece_type() const;
+  Bitboard transparent_squares(Color c) const;
   // winning conditions
   int n_move_rule() const;
   int n_fold_rule() const;
@@ -911,6 +913,29 @@ inline EnclosingRule Position::flip_enclosed_pieces() const {
   return var->flipEnclosedPieces;
 }
 
+inline PieceType Position::transparent_piece_type() const {
+  assert(var != nullptr);
+  return var->transparentPieceType;
+}
+
+inline Bitboard Position::transparent_squares(Color c) const {
+  PieceType tpt = transparent_piece_type();
+  if (tpt == NO_PIECE_TYPE)
+      return 0;
+  
+  // Squares containing own transparent pieces
+  Bitboard transparentPieces = pieces(c, tpt);
+  Bitboard result = transparentPieces;
+  
+  // Add squares adjacent to transparent pieces
+  while (transparentPieces) {
+      Square s = pop_lsb(transparentPieces);
+      result |= attacks_bb<KING>(s) & board_bb();
+  }
+  
+  return result;
+}
+
 inline Value Position::stalemate_value(int ply) const {
   assert(var != nullptr);
   if (var->stalematePieceCount)
@@ -1284,7 +1309,23 @@ inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
       return attacks_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb();
 
   PieceType movePt = pt == KING ? king_type() : pt;
-  Bitboard b = attacks_bb(c, movePt, s, byTypeBB[ALL_PIECES]);
+  
+  // Handle transparent pieces for sliders
+  Bitboard occupied = byTypeBB[ALL_PIECES];
+  bool isSlider = (var->transparentPieceType != NO_PIECE_TYPE && AttackRiderTypes[movePt] != NO_RIDER);
+  if (isSlider)
+  {
+      // For sliders, treat transparent squares as empty when calculating movement
+      Bitboard transparentSqs = transparent_squares(c);
+      occupied &= ~transparentSqs;
+  }
+  
+  Bitboard b = attacks_bb(c, movePt, s, occupied);
+  
+  // Sliders cannot land on own pieces (including own transparent pieces)
+  if (isSlider)
+      b &= ~pieces(c);
+  
   // Xiangqi soldier
   if (pt == SOLDIER && !(promoted_soldiers(c) & s))
       b &= file_bb(file_of(s));
@@ -1306,6 +1347,7 @@ inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
               & ~pieces(pt)
               & diagonal_lines();
   }
+  
   return b & board_bb(c, pt);
 }
 
@@ -1314,10 +1356,34 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
       return moves_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb();
 
   PieceType movePt = pt == KING ? king_type() : pt;
-  Bitboard b = moves_bb(c, movePt, s, byTypeBB[ALL_PIECES]);
+  
+  // Handle transparent pieces for sliders
+  Bitboard occupied = byTypeBB[ALL_PIECES];
+  bool isSlider = (var->transparentPieceType != NO_PIECE_TYPE && MoveRiderTypes[0][movePt] != NO_RIDER);
+  if (isSlider)
+  {
+      // For sliders, treat transparent squares as empty when calculating movement
+      Bitboard transparentSqs = transparent_squares(c);
+      occupied &= ~transparentSqs;
+  }
+  
+  Bitboard b = moves_bb(c, movePt, s, occupied);
   // Add initial moves
   if (double_step_region(c) & s)
-      b |= moves_bb<true>(c, movePt, s, byTypeBB[ALL_PIECES]);
+  {
+      Bitboard occupied_initial = byTypeBB[ALL_PIECES];
+      if (var->transparentPieceType != NO_PIECE_TYPE && MoveRiderTypes[1][movePt] != NO_RIDER)
+      {
+          Bitboard transparentSqs = transparent_squares(c);
+          occupied_initial &= ~transparentSqs;
+      }
+      b |= moves_bb<true>(c, movePt, s, occupied_initial);
+  }
+  
+  // Sliders cannot land on own pieces (including own transparent pieces)
+  if (isSlider)
+      b &= ~pieces(c);
+  
   // Xiangqi soldier
   if (pt == SOLDIER && !(promoted_soldiers(c) & s))
       b &= file_bb(file_of(s));
@@ -1339,6 +1405,7 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
               & ~pieces(pt)
               & diagonal_lines();
   }
+  
   return b & board_bb(c, pt);
 }
 
