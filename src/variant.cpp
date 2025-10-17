@@ -1377,7 +1377,7 @@ namespace {
         v->remove_piece(CHANCELLOR);
         v->add_piece(CUSTOM_PIECE_1, 'w', "mQRA");
         v->add_piece(COMMONER, 'g');
-        v->startFen = "rgnbqkbnwr/pppppppppp/10/10/10/10/PPPPPPPPPP/RWNBQKBNGR w KQkq - 0 1";
+        v->startFen = "rgnbkqbnwr/pppppppppp/10/10/10/10/PPPPPPPPPP/RWNBQKBNGR w KQkq - 0 1";
         v->promotionPieceTypes[WHITE] = piece_set(QUEEN) | ROOK | BISHOP | KNIGHT | COMMONER | CUSTOM_PIECE_1;
         v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | ROOK | BISHOP | KNIGHT | COMMONER | CUSTOM_PIECE_1;
         v->nnueAlias = "capablanca";
