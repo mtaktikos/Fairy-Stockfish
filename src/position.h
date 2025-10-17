@@ -1322,10 +1322,6 @@ inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
   
   Bitboard b = attacks_bb(c, movePt, s, occupied);
   
-  // Sliders cannot land on own pieces (including own transparent pieces)
-  if (isSlider)
-      b &= ~pieces(c);
-  
   // Xiangqi soldier
   if (pt == SOLDIER && !(promoted_soldiers(c) & s))
       b &= file_bb(file_of(s));
@@ -1348,7 +1344,12 @@ inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
               & diagonal_lines();
   }
   
-  return b & board_bb(c, pt);
+  // Sliders cannot land on own transparent pieces - apply at the end
+  Bitboard result = b & board_bb(c, pt);
+  if (isSlider)
+      result &= ~pieces(c, var->transparentPieceType);
+  
+  return result;
 }
 
 inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
@@ -1380,10 +1381,6 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
       b |= moves_bb<true>(c, movePt, s, occupied_initial);
   }
   
-  // Sliders cannot land on own pieces (including own transparent pieces)
-  if (isSlider)
-      b &= ~pieces(c);
-  
   // Xiangqi soldier
   if (pt == SOLDIER && !(promoted_soldiers(c) & s))
       b &= file_bb(file_of(s));
@@ -1406,7 +1403,12 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
               & diagonal_lines();
   }
   
-  return b & board_bb(c, pt);
+  // Sliders cannot land on own transparent pieces - apply at the end
+  Bitboard result = b & board_bb(c, pt);
+  if (isSlider)
+      result &= ~pieces(c, var->transparentPieceType);
+  
+  return result;
 }
 
 inline Bitboard Position::attackers_to(Square s) const {
