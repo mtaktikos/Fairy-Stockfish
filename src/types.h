@@ -315,7 +315,7 @@ enum EnclosingRule {
 };
 
 enum WallingRule {
-  NO_WALLING, ARROW, DUCK, EDGE, PAST, STATIC
+  NO_WALLING, ARROW, DUCK, EDGE, PAST, STATIC, HOLE
 };
 
 enum EndgameEval {
