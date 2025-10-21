@@ -578,6 +578,16 @@ Move UCI::to_move(const Position& pos, string& str) {
       if (str == UCI::move(pos, m) || (is_pass(m) && str == UCI::square(pos, from_sq(m)) + UCI::square(pos, to_sq(m))))
           return m;
 
+  // For HOLE walling, try adding the wall square automatically (always the from square)
+  if (pos.walling_rule() == HOLE && str.length() >= 4 && str.find(',') == string::npos)
+  {
+      string fromSq = str.substr(0, 2);
+      string extendedStr = str + "," + (str.length() >= 4 ? str.substr(2, 2) : fromSq) + fromSq;
+      for (const auto& m : MoveList<LEGAL>(pos))
+          if (extendedStr == UCI::move(pos, m))
+              return m;
+  }
+
   return MOVE_NONE;
 }
 

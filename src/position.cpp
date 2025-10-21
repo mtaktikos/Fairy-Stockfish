@@ -576,19 +576,23 @@ void Position::set_check_info(StateInfo* si) const {
 
   Square ksq = count<KING>(~sideToMove) ? square<KING>(~sideToMove) : SQ_NONE;
 
+  Bitboard occupied = pieces();
+  if (walling_rule() == HOLE)
+      occupied &= ~si->wallSquares;
+
   // For unused piece types, the check squares are left uninitialized
   si->nonSlidingRiders = 0;
   for (PieceSet ps = piece_types(); ps;)
   {
       PieceType pt = pop_lsb(ps);
       PieceType movePt = pt == KING ? king_type() : pt;
-      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, movePt, ksq, pieces()) : Bitboard(0);
+      si->checkSquares[pt] = ksq != SQ_NONE ? attacks_bb(~sideToMove, movePt, ksq, occupied) : Bitboard(0);
       // Collect special piece types that require slower check and evasion detection
       if (AttackRiderTypes[movePt] & NON_SLIDING_RIDERS)
           si->nonSlidingRiders |= pieces(pt);
   }
   si->shak = si->checkersBB & (byTypeBB[KNIGHT] | byTypeBB[ROOK] | byTypeBB[BERS]);
-  si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
+  si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, occupied) & pieces(sideToMove, KING)) : false;
   si->chased = var->chasingRule ? chased() : Bitboard(0);
   si->legalCapture = NO_VALUE;
   if (var->extinctionPseudoRoyal)
@@ -851,6 +855,9 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   // Snipers are sliders that attack 's' when a piece and other snipers are removed
   Bitboard snipers = 0;
   Bitboard slidingSnipers = 0;
+  Bitboard occupied = pieces();
+  if (walling_rule() == HOLE)
+      occupied &= ~st->wallSquares;
 
   if (var->fastAttacks)
   {
@@ -878,7 +885,7 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
                   }
               }
               else
-                  snipers |= b & ~attacks_bb(~c, pt, s, pieces());
+                  snipers |= b & ~attacks_bb(~c, pt, s, occupied);
               if (AttackRiderTypes[pt] & ~HOPPING_RIDERS)
                   slidingSnipers |= snipers & pieces(pt);
           }
@@ -898,13 +905,16 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
           }
       }
   }
-  Bitboard occupancy = pieces() ^ slidingSnipers;
+  Bitboard occupancyForBlockers = occupied ^ slidingSnipers;
 
   while (snipers)
   {
     Square sniperSq = pop_lsb(snipers);
     bool isHopper = AttackRiderTypes[type_of(piece_on(sniperSq))] & HOPPING_RIDERS;
-    Bitboard b = between_bb(s, sniperSq, type_of(piece_on(sniperSq))) & (isHopper ? (pieces() ^ sniperSq) : occupancy);
+    Bitboard hopperOccupied = isHopper ? pieces() : occupancyForBlockers;
+    if (walling_rule() == HOLE && isHopper)
+        hopperOccupied &= ~st->wallSquares;
+    Bitboard b = between_bb(s, sniperSq, type_of(piece_on(sniperSq))) & (isHopper ? hopperOccupied ^ sniperSq : occupancyForBlockers);
 
     if (b && (!more_than_one(b) || (isHopper && popcount(b) == 2)))
     {
@@ -1119,6 +1129,8 @@ bool Position::legal(Move m) const {
       Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces());
       if (walling_rule() == DUCK)
           occupied ^= st->wallSquares;
+      if (walling_rule() == HOLE)
+          occupied &= ~st->wallSquares;
       if (walling() || is_gating(m))
           occupied |= gating_square(m);
       if (type_of(m) == CASTLING)
@@ -1218,6 +1230,8 @@ bool Position::legal(Move m) const {
       Square ksq = square<KING>(us);
       Square capsq = capture_square(to);
       Bitboard occupied = (pieces() ^ from ^ capsq) | to;
+      if (walling_rule() == HOLE)
+          occupied &= ~st->wallSquares;
 
       assert(ep_squares() & to);
       assert(piece_on(to) == NO_PIECE);
@@ -1254,6 +1268,8 @@ bool Position::legal(Move m) const {
   }
 
   Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
+  if (walling_rule() == HOLE)
+      occupied &= ~st->wallSquares;
 
   // Flying general rule and bikjang
   // In case of bikjang passing is always allowed, even when in check
@@ -1335,6 +1351,8 @@ bool Position::pseudo_legal(const Move m) const {
       if (walling_rule() == ARROW && !(moves_bb(us, type_of(pc), to, pieces() ^ from) & gating_square(m)))
           return false;
       if (walling_rule() == PAST && (from != gating_square(m)))
+          return false;
+      if (walling_rule() == HOLE && (from != gating_square(m)))
           return false;
       if (walling_rule() == EDGE)
       {
@@ -1433,6 +1451,8 @@ bool Position::gives_check(Move m) const {
       return false;
 
   Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) | to;
+  if (walling_rule() == HOLE)
+      occupied &= ~st->wallSquares;
   Bitboard janggiCannons = pieces(JANGGI_CANNON);
   if (type_of(moved_piece(m)) == JANGGI_CANNON)
       janggiCannons = (type_of(m) == DROP ? janggiCannons : janggiCannons ^ from) | to;
@@ -2502,6 +2522,8 @@ bool Position::see_ge(Move m, Value threshold) const {
       return false;
 
   Bitboard occupied = (type_of(m) != DROP ? pieces() ^ from : pieces()) ^ to;
+  if (walling_rule() == HOLE)
+      occupied &= ~st->wallSquares;
   Color stm = color_of(moved_piece(m));
   Bitboard attackers = attackers_to(to, occupied);
   Bitboard stmAttackers, bb;

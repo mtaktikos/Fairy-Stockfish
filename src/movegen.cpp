@@ -51,6 +51,8 @@ namespace {
 
         if (pos.walling_rule() == PAST)
             b &= square_bb(from);
+        if (pos.walling_rule() == HOLE)
+            b &= square_bb(from);
         if (pos.walling_rule() == EDGE)
         {
             Bitboard wallsquares = pos.state()->wallSquares;
@@ -150,13 +152,17 @@ namespace {
     const Bitboard pawns      = pos.pieces(Us, PAWN);
     const Bitboard movable    = pos.board_bb(Us, PAWN) & ~pos.pieces();
     const Bitboard capturable = pos.board_bb(Us, PAWN) &  pos.pieces(Them);
+    // For HOLE walling, pawns can pass over holes in double moves
+    const Bitboard movableIntermediate = pos.walling_rule() == HOLE ? 
+        (board_size_bb(pos.max_file(), pos.max_rank()) & ~(pos.pieces() & ~pos.state()->wallSquares)) :
+        movable;
 
     target = Type == EVASIONS ? target : AllSquares;
 
     // Define single and double push, left and right capture, as well as respective promotion moves
     Bitboard b1 = shift<Up>(pawns) & movable & target;
-    Bitboard b2 = shift<Up>(shift<Up>(pawns & doubleStepRegion) & movable) & movable & target;
-    Bitboard b3 = shift<Up>(shift<Up>(shift<Up>(pawns & tripleStepRegion) & movable) & movable) & movable & target;
+    Bitboard b2 = shift<Up>(shift<Up>(pawns & doubleStepRegion) & movableIntermediate) & movable & target;
+    Bitboard b3 = shift<Up>(shift<Up>(shift<Up>(pawns & tripleStepRegion) & movableIntermediate) & movableIntermediate) & movable & target;
     Bitboard brc = shift<UpRight>(pawns) & capturable & target;
     Bitboard blc = shift<UpLeft >(pawns) & capturable & target;
 
