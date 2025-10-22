@@ -1330,8 +1330,10 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
   PieceType movePt = pt == KING ? king_type() : pt;
   Bitboard b = moves_bb(c, movePt, s, occupied);
   // Add initial moves
-  // Check if piece is virgin (hasn't moved yet) or is in the double_step_region
-  if ((st->virginPieces[c] & s) || (double_step_region(c) & s))
+  // For custom pieces, only check if virgin (not region-based)
+  // For built-in pieces like pawns, check the double_step_region
+  bool check_region = !is_custom(movePt);
+  if ((st->virginPieces[c] & s) || (check_region && (double_step_region(c) & s)))
       b |= moves_bb<true>(c, movePt, s, occupied);
   // Xiangqi soldier
   if (pt == SOLDIER && !(promoted_soldiers(c) & s))
