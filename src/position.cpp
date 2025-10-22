@@ -2760,10 +2760,8 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           for (PieceSet ps = extinction_piece_types(); ps;)
           {
               PieceType pt = pop_lsb(ps);
-              int count_c = var->extinctionByUnpromotedType ? count_with_hand_unpromoted(c, pt) : count_with_hand(c, pt);
-              int count_opponent = var->extinctionByUnpromotedType ? count_with_hand_unpromoted(~c, pt) : count_with_hand(~c, pt);
-              if (   count_c <= var->extinctionPieceCount
-                  && count_opponent >= var->extinctionOpponentPieceCount + (extinction_claim() && c == sideToMove))
+              if (   count_with_hand( c, pt) <= var->extinctionPieceCount
+                  && count_with_hand(~c, pt) >= var->extinctionOpponentPieceCount + (extinction_claim() && c == sideToMove))
               {
                   result = c == sideToMove ? extinction_value(ply) : -extinction_value(ply);
                   return true;

@@ -514,7 +514,6 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("extinctionValue", v->extinctionValue);
     parse_attribute("extinctionClaim", v->extinctionClaim);
     parse_attribute("extinctionPseudoRoyal", v->extinctionPseudoRoyal);
-    parse_attribute("extinctionByUnpromotedType", v->extinctionByUnpromotedType);
     parse_attribute("dupleCheck", v->dupleCheck);
     // extinction piece types
     parse_attribute("extinctionPieceTypes", v->extinctionPieceTypes, v->pieceToChar);
