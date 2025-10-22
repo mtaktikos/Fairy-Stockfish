@@ -231,6 +231,7 @@ public:
   int count_in_hand(PieceType pt) const;
   int count_in_hand(Color c, PieceType pt) const;
   int count_with_hand(Color c, PieceType pt) const;
+  int count_with_hand_unpromoted(Color c, PieceType pt) const;
   bool bikjang() const;
   bool allow_virtual_drop(Color c, PieceType pt) const;
 
@@ -1569,6 +1570,24 @@ inline int Position::count_in_hand(Color c, PieceType pt) const {
 
 inline int Position::count_with_hand(Color c, PieceType pt) const {
   return pieceCount[make_piece(c, pt)] + pieceCountInHand[c][pt];
+}
+
+inline int Position::count_with_hand_unpromoted(Color c, PieceType pt) const {
+  int cnt = pieceCountInHand[c][pt];
+  // Count pieces on board by their unpromoted type
+  for (Square s = SQ_A1; s <= SQ_MAX; ++s)
+  {
+      Piece pc = piece_on(s);
+      if (pc != NO_PIECE && color_of(pc) == c)
+      {
+          Piece unpromoted = unpromoted_piece_on(s);
+          if (unpromoted != NO_PIECE && type_of(unpromoted) == pt)
+              cnt++;
+          else if (unpromoted == NO_PIECE && type_of(pc) == pt)
+              cnt++;
+      }
+  }
+  return cnt;
 }
 
 inline bool Position::bikjang() const {
