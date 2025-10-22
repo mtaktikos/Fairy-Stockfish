@@ -56,6 +56,7 @@ struct StateInfo {
   Square castlingKingSquare[COLOR_NB];
   Bitboard wallSquares;
   Bitboard gatesBB[COLOR_NB];
+  Bitboard virginPieces[COLOR_NB];
 
   // Not copied when making a move (will be recomputed anyhow)
   Key        key;
@@ -248,6 +249,7 @@ public:
   Bitboard ep_squares() const;
   Square castling_king_square(Color c) const;
   Bitboard gates(Color c) const;
+  Bitboard virgin_pieces(Color c) const;
   bool empty(Square s) const;
   int count(Color c, PieceType pt) const;
   template<PieceType Pt> int count(Color c) const;
@@ -1255,6 +1257,10 @@ inline Bitboard Position::gates(Color c) const {
   return st->gatesBB[c];
 }
 
+inline Bitboard Position::virgin_pieces(Color c) const {
+  return st->virginPieces[c];
+}
+
 inline bool Position::is_on_semiopen_file(Color c, Square s) const {
   return !((pieces(c, PAWN) | pieces(c, SHOGI_PAWN, SOLDIER)) & file_bb(s));
 }
@@ -1324,7 +1330,8 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
   PieceType movePt = pt == KING ? king_type() : pt;
   Bitboard b = moves_bb(c, movePt, s, occupied);
   // Add initial moves
-  if (double_step_region(c) & s)
+  // Check if piece is virgin (hasn't moved yet) or is in the double_step_region
+  if ((st->virginPieces[c] & s) || (double_step_region(c) & s))
       b |= moves_bb<true>(c, movePt, s, occupied);
   // Xiangqi soldier
   if (pt == SOLDIER && !(promoted_soldiers(c) & s))

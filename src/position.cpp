@@ -537,6 +537,11 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
   chess960 = isChess960 || v->chess960;
   tsumeMode = Options["TsumeMode"];
   thisThread = th;
+  
+  // Initialize virgin pieces - all pieces start as virgin
+  st->virginPieces[WHITE] = pieces(WHITE);
+  st->virginPieces[BLACK] = pieces(BLACK);
+  
   set_state(st);
 
   assert(pos_is_ok());
@@ -1728,6 +1733,15 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
         st->castlingRights &= ~(~us & (kingSide ? KING_SIDE : QUEEN_SIDE));
       }
       k ^= Zobrist::castling[st->castlingRights];
+  }
+
+  // Update virgin pieces - clear virgin bit when a piece moves
+  if (type_of(m) != DROP && !is_pass(m))
+  {
+      st->virginPieces[us] &= ~square_bb(from);
+      // Also clear destination if capturing
+      if (captured)
+          st->virginPieces[them] &= ~square_bb(to);
   }
 
   // Flip enclosed pieces
