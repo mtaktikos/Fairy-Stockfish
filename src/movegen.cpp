@@ -438,9 +438,8 @@ namespace {
             Bitboard ptTarget = target;
             if ((Type == CAPTURES || Type == NON_EVASIONS || Type == EVASIONS) && (pos.color_change_on_capture() & pt))
                 ptTarget |= pos.pieces(Us);
-            moveList = generate_moves<Us, Type>(pos, moveList, pt, ptTarget);
+            moveList = generate_moves<Us, Type>(pos, moveList, pt, ptTarget, captureTarget);
         }
-            moveList = generate_moves<Us, Type>(pos, moveList, pop_lsb(ps), target, captureTarget);
         // generate drops
         if (pos.piece_drops() && Type != CAPTURES && (pos.can_drop(Us, ALL_PIECES) || pos.two_boards()))
             for (PieceSet ps = pos.piece_types(); ps;)

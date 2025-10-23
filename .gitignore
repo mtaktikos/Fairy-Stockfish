@@ -34,6 +34,7 @@ __pycache__
 
 # test artifacts
 tests/*.exp
+src/*.exp
 src/*.log
 src/*.epd
 src/*.txt
