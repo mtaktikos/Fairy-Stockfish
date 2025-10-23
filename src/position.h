@@ -205,6 +205,7 @@ public:
   Bitboard promoted_soldiers(Color c) const;
   bool makpong() const;
   EnclosingRule flip_enclosed_pieces() const;
+  PieceSet color_change_on_capture() const;
   // winning conditions
   int n_move_rule() const;
   int n_fold_rule() const;
@@ -934,6 +935,11 @@ inline int Position::n_fold_rule() const {
 inline EnclosingRule Position::flip_enclosed_pieces() const {
   assert(var != nullptr);
   return var->flipEnclosedPieces;
+}
+
+inline PieceSet Position::color_change_on_capture() const {
+  assert(var != nullptr);
+  return var->colorChangeOnCapture;
 }
 
 inline Value Position::stalemate_value(int ply) const {

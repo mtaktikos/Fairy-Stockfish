@@ -2421,6 +2421,35 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       k ^= Zobrist::wall[gating_square(m)];
   }
 
+  // Handle color change after capture for werewolf pieces
+  if (captured && type_of(m) != DROP && type_of(m) != CASTLING && (color_change_on_capture() & type_of(pc)))
+  {
+      Piece movedPiece = piece_on(to);
+      Piece flippedPiece = ~movedPiece;
+      
+      // Remove the piece of current color
+      remove_piece(to);
+      k ^= Zobrist::psq[movedPiece][to];
+      st->materialKey ^= Zobrist::psq[movedPiece][pieceCount[movedPiece]];
+      st->nonPawnMaterial[us] -= PieceValue[MG][movedPiece];
+      
+      // Add the piece of opposite color
+      put_piece(flippedPiece, to, is_promoted(to));
+      k ^= Zobrist::psq[flippedPiece][to];
+      st->materialKey ^= Zobrist::psq[flippedPiece][pieceCount[flippedPiece]-1];
+      st->nonPawnMaterial[them] += PieceValue[MG][flippedPiece];
+      
+      if (Eval::useNNUE)
+      {
+          // Update NNUE: piece changes color
+          dp.to[0] = SQ_NONE;
+          dp.piece[dp.dirty_num] = flippedPiece;
+          dp.from[dp.dirty_num] = SQ_NONE;
+          dp.to[dp.dirty_num] = to;
+          dp.dirty_num++;
+      }
+  }
+
   // Update the key with the final value
   st->key = k;
   // Calculate checkers bitboard (if move gives check)
