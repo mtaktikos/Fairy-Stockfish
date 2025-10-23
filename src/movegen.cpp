@@ -134,8 +134,24 @@ namespace {
   template<Color Us, GenType Type>
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
 
+#ifdef USE_MAILBOX_MOVEGEN
+    // Check if there are any pawns using the mailbox
+    bool has_pawns = false;
+    const Bitboard board_bb = pos.board_bb();
+    for (Square sq = SQ_A1; sq < SQUARE_NB; ++sq)
+    {
+        if ((board_bb & sq) && pos.piece_on(sq) == make_piece(Us, PAWN))
+        {
+            has_pawns = true;
+            break;
+        }
+    }
+    if (!has_pawns)
+        return moveList;
+#else
     if (!pos.pieces(Us, PAWN))
         return moveList;
+#endif
 
     constexpr Color     Them     = ~Us;
     constexpr Direction Up       = pawn_push(Us);
@@ -147,18 +163,30 @@ namespace {
     const Bitboard doubleStepRegion = pos.double_step_region(Us);
     const Bitboard tripleStepRegion = pos.triple_step_region(Us);
 
+#ifdef USE_MAILBOX_MOVEGEN
+    // Build pawns bitboard from mailbox for use in existing logic
+    Bitboard pawns = 0;
+    for (Square sq = SQ_A1; sq < SQUARE_NB; ++sq)
+    {
+        if ((board_bb & sq) && pos.piece_on(sq) == make_piece(Us, PAWN))
+            pawns |= sq;
+    }
+    const Bitboard pawns_const = pawns;
+#else
     const Bitboard pawns      = pos.pieces(Us, PAWN);
+    const Bitboard pawns_const = pawns;
+#endif
     const Bitboard movable    = pos.board_bb(Us, PAWN) & ~pos.pieces();
     const Bitboard capturable = pos.board_bb(Us, PAWN) &  pos.pieces(Them);
 
     target = Type == EVASIONS ? target : AllSquares;
 
     // Define single and double push, left and right capture, as well as respective promotion moves
-    Bitboard b1 = shift<Up>(pawns) & movable & target;
-    Bitboard b2 = shift<Up>(shift<Up>(pawns & doubleStepRegion) & movable) & movable & target;
-    Bitboard b3 = shift<Up>(shift<Up>(shift<Up>(pawns & tripleStepRegion) & movable) & movable) & movable & target;
-    Bitboard brc = shift<UpRight>(pawns) & capturable & target;
-    Bitboard blc = shift<UpLeft >(pawns) & capturable & target;
+    Bitboard b1 = shift<Up>(pawns_const) & movable & target;
+    Bitboard b2 = shift<Up>(shift<Up>(pawns_const & doubleStepRegion) & movable) & movable & target;
+    Bitboard b3 = shift<Up>(shift<Up>(shift<Up>(pawns_const & tripleStepRegion) & movable) & movable) & movable & target;
+    Bitboard brc = shift<UpRight>(pawns_const) & capturable & target;
+    Bitboard blc = shift<UpLeft >(pawns_const) & capturable & target;
 
     Bitboard b1p = b1 & standardPromotionZone;
     Bitboard b2p = b2 & standardPromotionZone;
@@ -229,7 +257,7 @@ namespace {
     if (pos.sittuyin_promotion() && (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS))
     {
         // Pawns need to be in promotion zone if there is more than one pawn
-        Bitboard promotionPawns = pos.count<PAWN>(Us) > 1 ? pawns & promotionZone : pawns;
+        Bitboard promotionPawns = pos.count<PAWN>(Us) > 1 ? pawns_const & promotionZone : pawns_const;
         while (promotionPawns)
         {
             Square from = pop_lsb(promotionPawns);
@@ -272,7 +300,7 @@ namespace {
             if (Type == EVASIONS && (target & (epSquare + Up)) && !pos.non_sliding_riders())
                 return moveList;
 
-            Bitboard b = pawns & pawn_attacks_bb(Them, epSquare);
+            Bitboard b = pawns_const & pawn_attacks_bb(Them, epSquare);
 
             // En passant square is already disabled for non-fairy variants if there is no attacker
             assert(b || !pos.fast_attacks());
@@ -291,11 +319,26 @@ namespace {
 
     assert(Pt != KING && Pt != PAWN);
 
+#ifdef USE_MAILBOX_MOVEGEN
+    // Mailbox-based move generation: iterate through all squares
+    const Bitboard board_bb = pos.board_bb();
+    for (Square from = SQ_A1; from < SQUARE_NB; ++from)
+    {
+        // Skip if square is not on the board
+        if (!(board_bb & from))
+            continue;
+            
+        // Skip if no piece on this square or wrong piece type/color
+        Piece pc = pos.piece_on(from);
+        if (pc == NO_PIECE || color_of(pc) != Us || type_of(pc) != Pt)
+            continue;
+#else
     Bitboard bb = pos.pieces(Us, Pt);
 
     while (bb)
     {
         Square from = pop_lsb(bb);
+#endif
 
         Bitboard attacks = pos.attacks_from(Us, Pt, from);
         Bitboard quiets = pos.moves_from(Us, Pt, from);

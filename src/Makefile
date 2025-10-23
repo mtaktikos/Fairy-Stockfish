@@ -98,6 +98,7 @@ largeboards = no
 all = no
 precomputedmagics = yes
 nnue = no
+mailboxmovegen = no
 load_net = $(if $(filter $(nnue),yes),net)
 
 ifeq ($(ARCH),)
@@ -351,6 +352,11 @@ endif
 # Enable all variants, even heavyweight ones like duck and amazons
 ifneq ($(all),no)
 	CXXFLAGS += -DALLVARS
+endif
+
+# Use mailbox-based move generation instead of bitboards
+ifneq ($(mailboxmovegen),no)
+	CXXFLAGS += -DUSE_MAILBOX_MOVEGEN
 endif
 
 ifeq ($(COMP),)
