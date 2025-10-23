@@ -1922,17 +1922,21 @@ namespace {
         // Add piece Q (Bishop Cannon) - moves like Bishop, captures by hopping like Bishop
         v->add_piece(CUSTOM_PIECE_2, 'q', "mBcpB");
         v->startFen = "1c1c1c1c/c1c1c1c1/1c1c1c1c/8/8/C1C1C1C1/1C1C1C1C/C1C1C1C1[] w - - 0 1";
-		v->pieceDrops = true;
+		 v->selfCapture = true;
+		 	  v->mustCapture = true;
+    		v->pieceDrops = true;
         v->capturesToHand = true;
         v->promotionRegion[WHITE] = Rank8BB;
         v->promotionRegion[BLACK] = Rank1BB;
         v->doubleStep = false;
         v->castling = false;
         v->promotedPieceType[CUSTOM_PIECE_1] = CUSTOM_PIECE_2;
-		 v->extinctionValue = -VALUE_MATE;
+		v->changingColors.trigger = ColorChangeTrigger::ON_CAPTURE;
+        v->changingColors.target = ColorChangeTarget::OPPONENT;
+       	 v->extinctionValue = -VALUE_MATE;
         v->extinctionPieceTypes = piece_set(ALL_PIECES);
         v->stalemateValue = -VALUE_MATE;
-        return v;
+	    return v;
     }
 
 } // namespace
