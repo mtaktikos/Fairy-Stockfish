@@ -1819,6 +1819,17 @@ namespace {
         return v;
     }
 #endif
+    // Werwolfcheckers - pieces that change color after capturing
+    Variant* werwolfcheckers_variant() {
+        Variant* v = chess_variant()->init();
+        v->pieceToCharTable = "PNBRQC.............Kpnbrqc.............k";
+        // Add piece C (Alfil hopper) - captures by hopping over adjacent diagonal piece
+        v->add_piece(CUSTOM_PIECE_1, 'c', "cpB2");
+        // Add piece Q (Bishop Cannon) - moves like Bishop, captures by hopping like Bishop
+        v->add_piece(CUSTOM_PIECE_2, 'q', "mBcpB");
+        v->colorChangeOnCapture = piece_set(CUSTOM_PIECE_1) | CUSTOM_PIECE_2;
+        return v;
+    }
 
 } // namespace
 
@@ -1953,6 +1964,7 @@ void VariantMap::init() {
     add("janggimodern", janggi_modern_variant());
     add("janggicasual", janggi_casual_variant());
 #endif
+    add("werwolfcheckers", werwolfcheckers_variant());
 }
 
 
