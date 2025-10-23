@@ -134,7 +134,6 @@ namespace {
   template<Color Us, GenType Type>
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
 
-#ifdef USE_MAILBOX_MOVEGEN
     // Check if there are any pawns using the mailbox
     bool has_pawns = false;
     const Bitboard board_bb = pos.board_bb();
@@ -148,10 +147,6 @@ namespace {
     }
     if (!has_pawns)
         return moveList;
-#else
-    if (!pos.pieces(Us, PAWN))
-        return moveList;
-#endif
 
     constexpr Color     Them     = ~Us;
     constexpr Direction Up       = pawn_push(Us);
@@ -163,7 +158,6 @@ namespace {
     const Bitboard doubleStepRegion = pos.double_step_region(Us);
     const Bitboard tripleStepRegion = pos.triple_step_region(Us);
 
-#ifdef USE_MAILBOX_MOVEGEN
     // Build pawns bitboard from mailbox for use in existing logic
     Bitboard pawns = 0;
     for (Square sq = SQ_A1; sq < SQUARE_NB; ++sq)
@@ -172,10 +166,6 @@ namespace {
             pawns |= sq;
     }
     const Bitboard pawns_const = pawns;
-#else
-    const Bitboard pawns      = pos.pieces(Us, PAWN);
-    const Bitboard pawns_const = pawns;
-#endif
     const Bitboard movable    = pos.board_bb(Us, PAWN) & ~pos.pieces();
     const Bitboard capturable = pos.board_bb(Us, PAWN) &  pos.pieces(Them);
 
@@ -319,7 +309,6 @@ namespace {
 
     assert(Pt != KING && Pt != PAWN);
 
-#ifdef USE_MAILBOX_MOVEGEN
     // Mailbox-based move generation: iterate through all squares
     const Bitboard board_bb = pos.board_bb();
     for (Square from = SQ_A1; from < SQUARE_NB; ++from)
@@ -332,13 +321,6 @@ namespace {
         Piece pc = pos.piece_on(from);
         if (pc == NO_PIECE || color_of(pc) != Us || type_of(pc) != Pt)
             continue;
-#else
-    Bitboard bb = pos.pieces(Us, Pt);
-
-    while (bb)
-    {
-        Square from = pop_lsb(bb);
-#endif
 
         Bitboard attacks = pos.attacks_from(Us, Pt, from);
         Bitboard quiets = pos.moves_from(Us, Pt, from);
