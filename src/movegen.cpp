@@ -161,11 +161,11 @@ namespace {
     target = Type == EVASIONS ? target : AllSquares;
 
     // Define single and double push, left and right capture, as well as respective promotion moves
-    Bitboard b1 = shift<Up>(pawns) & movable & target;
-    Bitboard b2 = shift<Up>(shift<Up>(pawns & doubleStepRegion) & movable) & movable & target;
-    Bitboard b3 = shift<Up>(shift<Up>(shift<Up>(pawns & tripleStepRegion) & movable) & movable) & movable & target;
-    Bitboard brc = shift<UpRight>(pawns) & capturable & target;
-    Bitboard blc = shift<UpLeft >(pawns) & capturable & target;
+    Bitboard b1 = shift<Up>(pawns_const) & movable & target;
+    Bitboard b2 = shift<Up>(shift<Up>(pawns_const & doubleStepRegion) & movable) & movable & target;
+    Bitboard b3 = shift<Up>(shift<Up>(shift<Up>(pawns_const & tripleStepRegion) & movable) & movable) & movable & target;
+    Bitboard brc = shift<UpRight>(pawns_const) & capturable & target;
+    Bitboard blc = shift<UpLeft >(pawns_const) & capturable & target;
 
     Bitboard b1p = b1 & standardPromotionZone;
     Bitboard b2p = b2 & standardPromotionZone;
@@ -236,7 +236,7 @@ namespace {
     if (pos.sittuyin_promotion() && (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS))
     {
         // Pawns need to be in promotion zone if there is more than one pawn
-        Bitboard promotionPawns = pos.count<PAWN>(Us) > 1 ? pawns & promotionZone : pawns;
+        Bitboard promotionPawns = pos.count<PAWN>(Us) > 1 ? pawns_const & promotionZone : pawns_const;
         while (promotionPawns)
         {
             Square from = pop_lsb(promotionPawns);
@@ -279,7 +279,7 @@ namespace {
             if (Type == EVASIONS && (target & (epSquare + Up)) && !pos.non_sliding_riders())
                 return moveList;
 
-            Bitboard b = pawns & pawn_attacks_bb(Them, epSquare);
+            Bitboard b = pawns_const & pawn_attacks_bb(Them, epSquare);
 
             // En passant square is already disabled for non-fairy variants if there is no attacker
             assert(b || !pos.fast_attacks());
@@ -305,7 +305,14 @@ namespace {
 
     while (bb)
     {
-        Square from = pop_lsb(bb);
+        // Skip if square is not on the board
+        if (!(board_bb & from))
+            continue;
+            
+        // Skip if no piece on this square or wrong piece type/color
+        Piece pc = pos.piece_on(from);
+        if (pc == NO_PIECE || color_of(pc) != Us || type_of(pc) != Pt)
+            continue;
 
         Bitboard attacks = pos.attacks_from(Us, Pt, from);
         Bitboard quiets = pos.moves_from(Us, Pt, from);
