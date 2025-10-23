@@ -404,7 +404,14 @@ namespace {
 
         moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
         for (PieceSet ps = pos.piece_types() & ~(piece_set(PAWN) | KING); ps;)
-            moveList = generate_moves<Us, Type>(pos, moveList, pop_lsb(ps), target);
+        {
+            PieceType pt = pop_lsb(ps);
+            // For color-changing pieces, allow capturing own pieces
+            Bitboard ptTarget = target;
+            if ((Type == CAPTURES || Type == NON_EVASIONS || Type == EVASIONS) && (pos.color_change_on_capture() & pt))
+                ptTarget |= pos.pieces(Us);
+            moveList = generate_moves<Us, Type>(pos, moveList, pt, ptTarget);
+        }
         // generate drops
         if (pos.piece_drops() && Type != CAPTURES && (pos.can_drop(Us, ALL_PIECES) || pos.two_boards()))
             for (PieceSet ps = pos.piece_types(); ps;)

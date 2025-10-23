@@ -1363,8 +1363,12 @@ bool Position::pseudo_legal(const Move m) const {
       return false;
 
   // The destination square cannot be occupied by a friendly piece
+  // Exception: color-changing pieces can capture own pieces
   if (pieces(us) & to)
-      return false;
+  {
+      if (!(color_change_on_capture() & type_of(pc)))
+          return false;
+  }
 
   // Handle the special case of a pawn move
   if (type_of(pc) == PAWN)
@@ -2079,6 +2083,35 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       st->wallSquares |= gating_square(m);
       byTypeBB[ALL_PIECES] |= gating_square(m);
       k ^= Zobrist::wall[gating_square(m)];
+  }
+
+  // Handle color change after capture for werewolf pieces
+  if (captured && type_of(m) != DROP && type_of(m) != CASTLING && (color_change_on_capture() & type_of(pc)))
+  {
+      Piece movedPiece = piece_on(to);
+      Piece flippedPiece = ~movedPiece;
+      
+      // Remove the piece of current color
+      remove_piece(to);
+      k ^= Zobrist::psq[movedPiece][to];
+      st->materialKey ^= Zobrist::psq[movedPiece][pieceCount[movedPiece]];
+      st->nonPawnMaterial[us] -= PieceValue[MG][movedPiece];
+      
+      // Add the piece of opposite color
+      put_piece(flippedPiece, to, is_promoted(to));
+      k ^= Zobrist::psq[flippedPiece][to];
+      st->materialKey ^= Zobrist::psq[flippedPiece][pieceCount[flippedPiece]-1];
+      st->nonPawnMaterial[them] += PieceValue[MG][flippedPiece];
+      
+      if (Eval::useNNUE)
+      {
+          // Update NNUE: piece changes color
+          dp.to[0] = SQ_NONE;
+          dp.piece[dp.dirty_num] = flippedPiece;
+          dp.from[dp.dirty_num] = SQ_NONE;
+          dp.to[dp.dirty_num] = to;
+          dp.dirty_num++;
+      }
   }
 
   // Update the key with the final value
