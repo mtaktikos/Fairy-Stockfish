@@ -1368,6 +1368,21 @@ namespace {
         v->nnueAlias = "capablanca";
         return v;
     }
+    // Pseudobul
+    // Asymmetric variant with White Queen on e1, King on f1, and Black Queen on f8, King on e8
+    Variant* pseudobul_variant() {
+        Variant* v = capablanca_variant()->init();
+        v->pieceToCharTable = "PNBRQ.........G....W.Kpnbrq.........g....w.k";
+        v->remove_piece(ARCHBISHOP);
+        v->remove_piece(CHANCELLOR);
+        v->add_piece(CUSTOM_PIECE_1, 'w', "mQRA");
+        v->add_piece(COMMONER, 'g');
+        v->startFen = "rgnbkqbnwr/pppppppppp/10/10/10/10/PPPPPPPPPP/RWNBQKBNGR w KQkq - 0 1";
+        v->promotionPieceTypes[WHITE] = piece_set(QUEEN) | ROOK | BISHOP | KNIGHT | COMMONER | CUSTOM_PIECE_1;
+        v->promotionPieceTypes[BLACK] = piece_set(QUEEN) | ROOK | BISHOP | KNIGHT | COMMONER | CUSTOM_PIECE_1;
+        v->nnueAlias = "capablanca";
+        return v;
+    }
     // Janus chess
     // 10x8 variant with two archbishops per side
     // https://en.wikipedia.org/wiki/Janus_Chess
@@ -1925,6 +1940,7 @@ void VariantMap::init() {
     add("capahouse", capahouse_variant());
     add("caparandom", caparandom_variant());
     add("gothic", gothic_variant());
+    add("pseudobul", pseudobul_variant());
     add("janus", janus_variant());
     add("modern", modern_variant());
     add("chancellor", chancellor_variant());
