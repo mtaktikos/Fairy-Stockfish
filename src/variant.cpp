@@ -684,6 +684,17 @@ namespace {
         return v;
     }
 
+    // Andernach + CapturAnything chess: combines color changing on capture with ability to capture own pieces
+    Variant* andernach_captureanything_variant() {
+        Variant* v = chess_variant()->init();
+        v->nnueAlias = "nn-";
+        v->selfCapture = true;
+        v->changingColors.trigger = ColorChangeTrigger::ON_CAPTURE;
+        v->changingColors.target = ColorChangeTarget::OPPONENT;
+        v->changingColors.pieceTypes = ~piece_set(KING);
+        return v;
+    }
+
     // Tibetan chess
     Variant* tibetan_variant() {
         Variant* v = chess_variant()->init();
@@ -1959,6 +1970,7 @@ void VariantMap::init() {
     add("andernach", andernach_variant());
     add("antiandernach", antiandernach_variant());
     add("superandernach", superandernach_variant());
+    add("andernach-captureanything", andernach_captureanything_variant());
     add("tibetan", tibetan_variant());
     add("benedict", benedict_variant());
 #ifdef ALLVARS
