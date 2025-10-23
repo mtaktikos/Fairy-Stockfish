@@ -1912,15 +1912,26 @@ namespace {
         return v;
     }
 #endif
-    // Werwolfcheckers - pieces that change color after capturing
-    Variant* werwolfcheckers_variant() {
+    // Werewolfcheckers - pieces that change color after capturing
+    Variant* werewolfcheckers_variant() {
         Variant* v = chess_variant()->init();
-        v->pieceToCharTable = "PNBRQC.............Kpnbrqc.............k";
+		 v->reset_pieces();
+       v->pieceToCharTable = "C...Q...............c...q...............";
         // Add piece C (Alfil hopper) - captures by hopping over adjacent diagonal piece
-        v->add_piece(CUSTOM_PIECE_1, 'c', "cpB2");
+        v->add_piece(CUSTOM_PIECE_1, 'c', "mfFcpB2");
         // Add piece Q (Bishop Cannon) - moves like Bishop, captures by hopping like Bishop
         v->add_piece(CUSTOM_PIECE_2, 'q', "mBcpB");
-        v->colorChangeOnCapture = piece_set(CUSTOM_PIECE_1) | CUSTOM_PIECE_2;
+        v->startFen = "1c1c1c1c/c1c1c1c1/1c1c1c1c/8/8/C1C1C1C1/1C1C1C1C/C1C1C1C1[] w - - 0 1";
+		v->pieceDrops = true;
+        v->capturesToHand = true;
+        v->promotionRegion[WHITE] = Rank8BB;
+        v->promotionRegion[BLACK] = Rank1BB;
+        v->doubleStep = false;
+        v->castling = false;
+        v->promotedPieceType[CUSTOM_PIECE_1] = CUSTOM_PIECE_2;
+		 v->extinctionValue = -VALUE_MATE;
+        v->extinctionPieceTypes = piece_set(ALL_PIECES);
+        v->stalemateValue = -VALUE_MATE;
         return v;
     }
 
@@ -1984,6 +1995,7 @@ void VariantMap::init() {
     add("andernach-captureanything", andernach_captureanything_variant());
     add("tibetan", tibetan_variant());
     add("benedict", benedict_variant());
+	add("werewolfcheckers", werewolfcheckers_variant());
 #ifdef ALLVARS
     add("duck", duck_variant());
 #endif
@@ -2065,7 +2077,6 @@ void VariantMap::init() {
     add("janggimodern", janggi_modern_variant());
     add("janggicasual", janggi_casual_variant());
 #endif
-    add("werwolfcheckers", werwolfcheckers_variant());
 }
 
 
