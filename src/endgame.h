@@ -54,19 +54,6 @@ enum EndgameCode {
   KSFK,  // KSF vs K
   KSFKF,  // KSF vs KF
   KRKS,  // KR vs KS
-  KCKR,  // KC vs KR
-  KAKR,  // KA vs KR
-
-  // Special
-  KXKX,
-  RK,
-  KN,
-  NN,
-  KQK,
-  KRK,
-  KBK,
-  KNK,
-  KK,
 
   SCALING_FUNCTIONS,
   KBPsK,   // KB and pawns vs K
@@ -85,7 +72,7 @@ enum EndgameCode {
 /// Endgame functions can be of two types depending on whether they return a
 /// Value or a ScaleFactor.
 
-template<EndgameCode E, EndgameEval V = EG_EVAL_CHESS> using
+template<EndgameCode E> using
 eg_type = typename std::conditional<(E < SCALING_FUNCTIONS), Value, ScaleFactor>::type;
 
 
@@ -102,7 +89,7 @@ struct EndgameBase {
 };
 
 
-template<EndgameCode E, EndgameEval V = EG_EVAL_CHESS, typename T = eg_type<E, V>>
+template<EndgameCode E, typename T = eg_type<E>>
 struct Endgame : public EndgameBase<T> {
 
   explicit Endgame(Color c) : EndgameBase<T>(c) {}
@@ -128,12 +115,12 @@ namespace Endgames {
     return std::get<std::is_same<T, ScaleFactor>::value>(maps);
   }
 
-  template<EndgameCode E, EndgameEval V = EG_EVAL_CHESS, typename T = eg_type<E, V>>
+  template<EndgameCode E, typename T = eg_type<E>>
   void add(const std::string& code) {
 
     StateInfo st;
-    map<T>()[Position().set(code, WHITE, &st).material_key(V)] = Ptr<T>(new Endgame<E, V>(WHITE));
-    map<T>()[Position().set(code, BLACK, &st).material_key(V)] = Ptr<T>(new Endgame<E, V>(BLACK));
+    map<T>()[Position().set(code, WHITE, &st).material_key()] = Ptr<T>(new Endgame<E>(WHITE));
+    map<T>()[Position().set(code, BLACK, &st).material_key()] = Ptr<T>(new Endgame<E>(BLACK));
   }
 
   template<typename T>

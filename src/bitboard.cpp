@@ -64,7 +64,7 @@ namespace {
 // Some magics need to be split in order to reduce memory consumption.
 // Otherwise on a 12x10 board they can be >100 MB.
 #ifdef LARGEBOARDS
-  Bitboard RookTableH[0x11800];  // To store horizontal rook attacks
+  Bitboard RookTableH[0x11800];  // To store horizontalrook attacks
   Bitboard RookTableV[0x4800];  // To store vertical rook attacks
   Bitboard BishopTable[0x33C00]; // To store bishop attacks
   Bitboard CannonTableH[0x11800];  // To store horizontal cannon attacks
@@ -111,7 +111,7 @@ namespace {
   const std::map<Direction, int> GrasshopperDirectionsH { {EAST, 1}, {WEST, 1} };
   const std::map<Direction, int> GrasshopperDirectionsD { {NORTH_EAST, 1}, {SOUTH_EAST, 1}, {SOUTH_WEST, 1}, {NORTH_WEST, 1} };
 
-  enum MovementType { RIDER, HOPPER, LAME_LEAPER, HOPPER_RANGE };
+  enum MovementType { RIDER, HOPPER, LAME_LEAPER, UNLIMITED_RIDER };
 
   template <MovementType MT>
 #ifdef PRECOMPUTED_MAGICS
@@ -137,9 +137,7 @@ namespace {
             if (MT != HOPPER || hurdle)
             {
                 attack |= s;
-                // For hoppers we consider limit == 1 as a grasshopper,
-                // but limit > 1 as a limited distance hopper
-                if (limit && !(MT == HOPPER_RANGE && limit == 1) && ++count >= limit)
+                if (limit && MT != UNLIMITED_RIDER && ++count >= limit)
                     break;
             }
 
@@ -222,7 +220,7 @@ std::string Bitboards::pretty(Bitboard b) {
 
       s += "| " + std::to_string(1 + r) + "\n+---+---+---+---+---+---+---+---+---+---+---+---+\n";
   }
-  s += "  a   b   c   d   e   f   g   h   i   j   k   l\n";
+  s += "  a   b   c   d   e   f   g   h   i   j   k\n";
 
   return s;
 }
@@ -302,7 +300,7 @@ void Bitboards::init_pieces() {
                               leaper |= safe_destination(s, c == WHITE ? d : -d);
                       }
                       pseudo |= sliding_attack<RIDER>(pi->slider[initial][modality], s, 0, c);
-                      pseudo |= sliding_attack<HOPPER_RANGE>(pi->hopper[initial][modality], s, 0, c);
+                      pseudo |= sliding_attack<UNLIMITED_RIDER>(pi->hopper[initial][modality], s, 0, c);
                   }
               }
           }
@@ -422,7 +420,7 @@ namespace {
         // apply to the 64 or 32 bits word to get the index.
         Magic& m = magics[s];
         // The mask for hoppers is unlimited distance, even if the hopper is limited distance (e.g., grasshopper)
-        m.mask  = (MT == LAME_LEAPER ? lame_leaper_path(directions, s) : sliding_attack<MT == HOPPER ? HOPPER_RANGE : MT>(directions, s, 0)) & ~edges;
+        m.mask  = (MT == LAME_LEAPER ? lame_leaper_path(directions, s) : sliding_attack<MT == HOPPER ? UNLIMITED_RIDER : MT>(directions, s, 0)) & ~edges;
 #ifdef LARGEBOARDS
         m.shift = 128 - popcount(m.mask);
 #else

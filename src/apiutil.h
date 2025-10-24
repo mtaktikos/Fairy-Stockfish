@@ -237,7 +237,7 @@ inline Disambiguation disambiguation_level(const Position& pos, Move m, Notation
             return SQUARE_DISAMBIGUATION;
     }
 
-    // A disambiguation occurs if we have more than one piece of type 'pt'
+    // A disambiguation occurs if we have more then one piece of type 'pt'
     // that can reach 'to' with a legal move.
     Bitboard b = pos.pieces(us, pt) ^ from;
     Bitboard others = 0;
@@ -346,7 +346,7 @@ inline const std::string move_to_san(Position& pos, Move m, Notation n) {
     }
 
     // Wall square
-    if (pos.walling())
+    if (pos.wall_gating())
         san += "," + square(pos, gating_square(m), n);
 
     // Check and checkmate
@@ -369,56 +369,34 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     if (   pos.captures_to_hand()
         || pos.count_in_hand(c, ALL_PIECES)
         || (pos.extinction_value() != VALUE_NONE && !pos.extinction_pseudo_royal())
-        || (pos.flag_region(c) && pos.count(c, pos.flag_piece(c))))
+        || (pos.capture_the_flag_piece() && pos.count(c, pos.capture_the_flag_piece())))
         return false;
 
-    // Precalculate if any promotion pawn types have pieces
-    bool hasPromotingPawn = false;
-    for (PieceSet pawnTypes = pos.promotion_pawn_types(c); pawnTypes; )
-    {
-        PieceType pawnType = pop_lsb(pawnTypes);
-        if (pos.count(c, pawnType) > 0)
-        {
-            hasPromotingPawn = true;
-            break;
-        }
-    }
-
-    // Determine checkmating potential of present pieces
-    constexpr PieceSet MAJOR_PIECES = piece_set(ROOK) | QUEEN | ARCHBISHOP | CHANCELLOR
-                                     | SILVER | GOLD | COMMONER | CENTAUR | AMAZON | BERS;
-    constexpr PieceSet COLORBOUND_PIECES = piece_set(BISHOP) | FERS | FERS_ALFIL | ALFIL | ELEPHANT;
-    Bitboard restricted = pos.pieces(KING);
-    Bitboard colorbound = 0;
+    // Restricted pieces
+    Bitboard restricted = pos.pieces(~c, KING);
+    // Atomic kings can not help checkmating
+    if (pos.extinction_pseudo_royal() && pos.blast_on_capture() && (pos.extinction_piece_types() & COMMONER))
+        restricted |= pos.pieces(c, COMMONER);
     for (PieceSet ps = pos.piece_types(); ps;)
     {
         PieceType pt = pop_lsb(ps);
-
-        // Constrained pieces
-        if (pt == KING || !(pos.board_bb(c, pt) & pos.board_bb(~c, KING)) || (pos.extinction_pseudo_royal() && pos.blast_on_capture() && (pos.extinction_piece_types() & pt)))
+        if (pt == KING || !(pos.board_bb(c, pt) & pos.board_bb(~c, KING)))
             restricted |= pos.pieces(c, pt);
-
-        // If piece is a major piece or a custom piece we consider it sufficient for mate.
-        // To avoid false positives, we assume any custom piece has mating potential.
-        else if ((MAJOR_PIECES & pt) || is_custom(pt))
-        {
-            // Check if piece is already on the board
-            if (pos.count(c, pt) > 0)
-                return false;
-
-            // Check if any pawn can promote to this piece type
-            if (hasPromotingPawn && (pos.promotion_piece_types(c) & pt))
-                return false;
-        }
-
-        // Collect color-bound pieces
-        else if (COLORBOUND_PIECES & pt)
-            colorbound |= pos.pieces(pt);
+        else if (is_custom(pt) && pos.count(c, pt) > 0)
+            // to be conservative, assume any custom piece has mating potential
+            return false;
     }
 
-    Bitboard unbound = pos.pieces() ^ restricted ^ colorbound;
+    // Mating pieces
+    for (PieceType pt : { ROOK, QUEEN, ARCHBISHOP, CHANCELLOR, SILVER, GOLD, COMMONER, CENTAUR })
+        if ((pos.pieces(c, pt) & ~restricted) || (pos.count(c, pos.promotion_pawn_type(c)) && (pos.promotion_piece_types(c) & pt)))
+            return false;
 
     // Color-bound pieces
+    Bitboard colorbound = 0, unbound;
+    for (PieceType pt : { BISHOP, FERS, FERS_ALFIL, ALFIL, ELEPHANT })
+        colorbound |= pos.pieces(pt) & ~restricted;
+    unbound = pos.pieces() ^ restricted ^ colorbound;
     if ((colorbound & pos.pieces(c)) && (((DarkSquares & colorbound) && (~DarkSquares & colorbound)) || unbound || pos.stalemate_value() != VALUE_DRAW || pos.check_counting() || pos.makpong()))
         return false;
 
@@ -426,17 +404,12 @@ inline bool has_insufficient_material(Color c, const Position& pos) {
     if ((pos.pieces(c) & unbound) && (popcount(pos.pieces() ^ restricted) >= 2 || pos.stalemate_value() != VALUE_DRAW || pos.check_counting() || pos.makpong()))
         return false;
 
-    // Non-draw stalemate with lone custom king
-    if (   pos.stalemate_value() != VALUE_DRAW && pos.king_type() != KING
-        && pos.pieces(c, KING) && (pos.board_bb(c, KING) & pos.board_bb(~c, KING)))
-        return false;
-
     return true;
 }
 
-inline Bitboard checked(const Position& pos) {
-    return (pos.checkers() ? square_bb(pos.square<KING>(pos.side_to_move())) : Bitboard(0))
-        | (pos.extinction_pseudo_royal() ? pos.checked_pseudo_royals(pos.side_to_move()) : Bitboard(0));
+inline bool is_check(const Position& pos) {
+    return pos.checkers()
+        || (pos.extinction_pseudo_royal() && pos.attackers_to_pseudo_royals(~pos.side_to_move()));
 }
 
 namespace FEN {
@@ -444,7 +417,6 @@ namespace FEN {
 enum FenValidation : int {
     FEN_INVALID_COUNTING_RULE = -14,
     FEN_INVALID_CHECK_COUNT = -13,
-    FEN_INVALID_PROMOTED_PIECE = -12,
     FEN_INVALID_NB_PARTS = -11,
     FEN_INVALID_CHAR = -10,
     FEN_TOUCHING_KINGS = -9,
@@ -563,47 +535,6 @@ inline Validation check_for_valid_characters(const std::string& firstFenPart, co
         {
             std::cerr << "Invalid piece character: '" << c << "'." << std::endl;
             return NOK;
-        }
-    }
-    return OK;
-}
-
-inline Validation check_promoted_pieces(const std::string& firstFenPart, const Variant* v) {
-    // Only check promoted pieces if the variant supports shogi-style promotions
-    if (!v || !v->shogiStylePromotions)
-        return OK;
-    
-    for (size_t i = 0; i < firstFenPart.length() - 1; ++i) {
-        // Look for promoted pieces ('+' followed by piece character)
-        if (firstFenPart[i] == '+') {
-            char pieceChar = firstFenPart[i + 1];
-            
-            // Skip if next character is not a piece character or is a special character
-            if (isdigit(pieceChar) || pieceChar == '/' || pieceChar == ' ' || pieceChar == '[')
-                continue;
-                
-            // Find the piece type corresponding to this character
-            size_t idx = v->pieceToChar.find(pieceChar);
-            if (idx == std::string::npos) {
-                // Try synonyms
-                idx = v->pieceToCharSynonyms.find(pieceChar);
-                if (idx == std::string::npos)
-                    continue; // Character validation will catch this
-            }
-            
-            // Ensure idx is within valid range for piece types
-            if (idx >= PIECE_TYPE_NB)
-                continue;
-                
-            // Get the piece type directly from the index
-            PieceType pt = PieceType(idx);
-            
-            // Check if this piece type has a promoted form
-            if (pt != NO_PIECE_TYPE && pt < PIECE_TYPE_NB && v->promotedPieceType[pt] == NO_PIECE_TYPE) {
-                std::cerr << "Invalid promoted piece: '+' followed by '" << pieceChar 
-                         << "'. This piece cannot be promoted in variant." << std::endl;
-                return NOK;
-            }
         }
     }
     return OK;
@@ -885,16 +816,6 @@ inline Validation check_number_of_kings(const std::string& fenBoard, const std::
     int nbWhiteKingsStart = piece_count(startFenBoard, WHITE, KING, v);
     int nbBlackKingsStart = piece_count(startFenBoard, BLACK, KING, v);
 
-    if (nbWhiteKings > 1)
-    {
-        std::cerr << "Invalid number of white kings. Maximum: 1. Given: " << nbWhiteKings << std::endl;
-        return NOK;
-    }
-    if (nbBlackKings > 1)
-    {
-        std::cerr << "Invalid number of black kings. Maximum: 1. Given: " << nbBlackKings << std::endl;
-        return NOK;
-    }
     if (nbWhiteKings != nbWhiteKingsStart)
     {
         std::cerr << "Invalid number of white kings. Expected: " << nbWhiteKingsStart << ". Given: " << nbWhiteKings << std::endl;
@@ -1016,10 +937,6 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     // check for valid characters
     if (check_for_valid_characters(fenParts[0], validSpecialCharactersFirstField, v) == NOK)
         return FEN_INVALID_CHAR;
-
-    // check for valid promoted pieces
-    if (check_promoted_pieces(fenParts[0], v) == NOK)
-        return FEN_INVALID_PROMOTED_PIECE;
 
     // check for number of ranks
     const int nbRanks = v->maxRank + 1;

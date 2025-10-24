@@ -162,13 +162,10 @@ namespace Eval {
         exit(EXIT_FAILURE);
     }
 
-    if (CurrentProtocol != XBOARD)
-    {
-        if (useNNUE)
-            sync_cout << "info string NNUE evaluation using " << eval_file_loaded << " enabled" << sync_endl;
-        else
-            sync_cout << "info string classical evaluation enabled" << sync_endl;
-    }
+    if (useNNUE)
+        sync_cout << "info string NNUE evaluation using " << eval_file_loaded << " enabled" << sync_endl;
+    else
+        sync_cout << "info string classical evaluation enabled" << sync_endl;
   }
 }
 
@@ -1074,7 +1071,7 @@ namespace {
     }
 
     // Passed custom pawns
-    for (PieceSet ps = (pos.promotion_pawn_types(Us) & ~piece_set(PAWN)); ps;)
+    for (PieceSet ps = pos.variant()->promotionPawnTypes[Us] & ~piece_set(PAWN); ps;)
     {
         PieceType pt = pop_lsb(ps);
         Bitboard b2 = pos.pieces(Us, pt);
@@ -1166,8 +1163,8 @@ namespace {
     int weight = pos.count<ALL_PIECES>(Us) - 3 + std::min(pe->blocked_count(), 9);
     Score score = make_score(bonus * weight * weight / 16, 0);
 
-    if (pos.flag_region(Us))
-        score += make_score(200, 200) * popcount(behind & safe & pos.flag_region(Us));
+    if (pos.capture_the_flag(Us))
+        score += make_score(200, 200) * popcount(behind & safe & pos.capture_the_flag(Us));
 
     if constexpr (T)
         Trace::add(SPACE, Us, score);
@@ -1187,10 +1184,11 @@ namespace {
     Score score = SCORE_ZERO;
 
     // Capture the flag
-    if (pos.flag_region(Us))
+    if (pos.capture_the_flag(Us))
     {
-        Bitboard ctfPieces = pos.pieces(Us, pos.flag_piece(Us));
-        Bitboard ctfTargets = pos.flag_region(Us) & pos.board_bb();
+        PieceType ptCtf = pos.capture_the_flag_piece();
+        Bitboard ctfPieces = pos.pieces(Us, ptCtf);
+        Bitboard ctfTargets = pos.capture_the_flag(Us) & pos.board_bb();
         Bitboard onHold = 0;
         Bitboard onHold2 = 0;
         Bitboard processed = 0;
@@ -1203,8 +1201,6 @@ namespace {
         // Traverse all paths of the CTF pieces to the CTF targets.
         // Put squares that are attacked or occupied on hold for one iteration.
         // This reflects that likely a move will be needed to block or capture the attack.
-        // If all piece types are eligible, use the king path as a proxy for distance.
-        PieceType ptCtf = pos.flag_piece(Us) == ALL_PIECES ? KING : pos.flag_piece(Us);
         for (int dist = 0; (ctfPieces || onHold || onHold2) && (ctfTargets & ~processed); dist++)
         {
             int wins = popcount(ctfTargets & ctfPieces);
@@ -1283,17 +1279,7 @@ namespace {
     // Connect-n
     if (pos.connect_n() > 0)
     {
-        //Calculate eligible pieces for connection once.
-        //Still consider all opponent pieces as blocking.
-        Bitboard connectPiecesUs = 0;
-        for (PieceSet ps = pos.connect_piece_types(); ps;){
-            PieceType pt = pop_lsb(ps);
-            connectPiecesUs |= pos.pieces(pt);
-        };
-        connectPiecesUs &= pos.pieces(Us);
-
-        for (const Direction& d : pos.getConnectDirections())
-
+        for (Direction d : {NORTH, NORTH_EAST, EAST, SOUTH_EAST})
         {
             // Find sufficiently large gaps
             Bitboard b = pos.board_bb() & ~pos.pieces(Them);
@@ -1305,7 +1291,7 @@ namespace {
                 Square s = pop_lsb(b);
                 int c = 0;
                 for (int j = 0; j < pos.connect_n(); j++)
-                    if (connectPiecesUs & (s - j * d))
+                    if (pos.pieces(Us) & (s - j * d))
                         c++;
                 score += make_score(200, 200)  * c / (pos.connect_n() - c) / (pos.connect_n() - c);
             }
@@ -1362,15 +1348,10 @@ namespace {
   template<Tracing T>
   Value Evaluation<T>::winnable(Score score) const {
 
-    // No initiative bonus for variants that do not require sufficient mating material, e.g., extinction variants.
-    // This protects them from misidentification as drawish.
+    // No initiative bonus for extinction variants
     int complexity = 0;
     bool pawnsOnBothFlanks = true;
-    if (   pos.extinction_value() == VALUE_NONE
-        && !pos.captures_to_hand()
-        && !pos.connect_n()
-        && !pos.material_counting()
-        && !(pos.flag_region(WHITE) || pos.flag_region(BLACK)))
+    if (pos.extinction_value() == VALUE_NONE && !pos.captures_to_hand() && !pos.connect_n() && !pos.material_counting())
     {
     int outflanking = !pos.count<KING>(WHITE) || !pos.count<KING>(BLACK) ? 0
                      :  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
@@ -1388,8 +1369,8 @@ namespace {
 
     // Compute the initiative bonus for the attacking side
     complexity =       9 * pe->passed_count()
-                    + 12 * pos.count(WHITE, pos.main_promotion_pawn_type(WHITE)) * bool(pos.main_promotion_pawn_type(WHITE))
-                    + 12 * pos.count(BLACK, pos.main_promotion_pawn_type(BLACK)) * bool(pos.main_promotion_pawn_type(BLACK))
+                    + 12 * pos.count(WHITE, pos.promotion_pawn_type(WHITE)) * bool(pos.promotion_pawn_type(WHITE))
+                    + 12 * pos.count(BLACK, pos.promotion_pawn_type(BLACK)) * bool(pos.promotion_pawn_type(BLACK))
                     + 15 * pos.count<SOLDIER>()
                     +  9 * outflanking
                     + 21 * pawnsOnBothFlanks

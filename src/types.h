@@ -227,22 +227,13 @@ typedef uint64_t Bitboard;
 constexpr int SQUARE_BITS = 6;
 #endif
 
-//When defined, move list will be stored in heap. Delete this if you want to use stack to store move list. Using stack can cause overflow (Segmentation Fault) when the search is too deep.
-#define USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
-
 #ifdef ALLVARS
 constexpr int MAX_MOVES = 8192;
-#ifdef USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
-constexpr int MAX_PLY = 246;
-#else
-constexpr int MAX_PLY = 60;
-#endif
-/// endif USE_HEAP_INSTEAD_OF_STACK_FOR_MOVE_LIST
+constexpr int MAX_PLY   = 60;
 #else
 constexpr int MAX_MOVES = 1024;
-constexpr int MAX_PLY = 246;
+constexpr int MAX_PLY   = 246;
 #endif
-/// endif ALLVARS
 
 /// A move needs 16 bits to be stored
 ///
@@ -311,15 +302,7 @@ enum ChasingRule {
 };
 
 enum EnclosingRule {
-  NO_ENCLOSING, REVERSI, ATAXX, QUADWRANGLE, SNORT, ANYSIDE, TOP
-};
-
-enum WallingRule {
-  NO_WALLING, ARROW, DUCK, EDGE, PAST, STATIC
-};
-
-enum EndgameEval {
-  NO_EG_EVAL, EG_EVAL_CHESS, EG_EVAL_ANTI, EG_EVAL_ATOMIC, EG_EVAL_DUCK, EG_EVAL_MISERE, EG_EVAL_RK, EG_EVAL_NB
+  NO_ENCLOSING, REVERSI, ATAXX
 };
 
 enum OptBool {
@@ -663,14 +646,9 @@ constexpr PieceSet operator| (PieceSet ps1, PieceSet ps2) { return (PieceSet)((u
 constexpr PieceSet operator| (PieceSet ps, PieceType pt) { return ps | piece_set(pt); }
 constexpr PieceSet operator& (PieceSet ps1, PieceSet ps2) { return (PieceSet)((uint64_t)ps1 & (uint64_t)ps2); }
 constexpr PieceSet operator& (PieceSet ps, PieceType pt) { return ps & piece_set(pt); }
-constexpr PieceSet operator^ (PieceSet ps1, PieceSet ps2) { return (PieceSet)((uint64_t)ps1 ^ (uint64_t)ps2); }
-constexpr PieceSet operator^ (PieceSet ps, PieceType pt) { return ps ^ piece_set(pt); }
 inline PieceSet& operator|= (PieceSet& ps1, PieceSet ps2) { return (PieceSet&)((uint64_t&)ps1 |= (uint64_t)ps2); }
 inline PieceSet& operator|= (PieceSet& ps, PieceType pt) { return ps |= piece_set(pt); }
 inline PieceSet& operator&= (PieceSet& ps1, PieceSet ps2) { return (PieceSet&)((uint64_t&)ps1 &= (uint64_t)ps2); }
-//inline PieceSet& operator&= (PieceSet& ps, PieceType pt) does not make sense
-inline PieceSet& operator^= (PieceSet& ps1, PieceSet ps2) { return (PieceSet&)((uint64_t&)ps1 ^= (uint64_t)ps2); }
-inline PieceSet& operator^= (PieceSet& ps, PieceType pt) { return ps ^= piece_set(pt); }
 
 static_assert(piece_set(PAWN) & PAWN);
 static_assert(piece_set(KING) & KING);

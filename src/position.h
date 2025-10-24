@@ -114,7 +114,7 @@ public:
   // FEN string input/output
   Position& set(const Variant* v, const std::string& fenStr, bool isChess960, StateInfo* si, Thread* th, bool sfen = false);
   Position& set(const std::string& code, Color c, StateInfo* si);
-  std::string fen(bool sfen = false, bool showPromoted = false, int countStarted = 0, std::string holdings = "-", Bitboard fogArea = 0) const;
+  std::string fen(bool sfen = false, bool showPromoted = false, int countStarted = 0, std::string holdings = "-") const;
 
   // Variant rule properties
   const Variant* variant() const;
@@ -130,7 +130,7 @@ public:
   const std::string& piece_to_char_synonyms() const;
   Bitboard promotion_zone(Color c) const;
   Square promotion_square(Color c, Square s) const;
-  PieceType main_promotion_pawn_type(Color c) const;
+  PieceType promotion_pawn_type(Color c) const;
   PieceSet promotion_piece_types(Color c) const;
   bool sittuyin_promotion() const;
   int promotion_limit(PieceType pt) const;
@@ -140,9 +140,7 @@ public:
   bool mandatory_piece_promotion() const;
   bool piece_demotion() const;
   bool blast_on_capture() const;
-  PieceSet blast_immune_types() const;
-  PieceSet mutually_immune_types() const;
-  EndgameEval endgame_eval() const;
+  bool endgame_eval() const;
   Bitboard double_step_region(Color c) const;
   Bitboard triple_step_region(Color c) const;
   bool castling_enabled() const;
@@ -158,12 +156,6 @@ public:
   Square nnue_king_square(Color c) const;
   bool nnue_use_pockets() const;
   bool nnue_applicable() const;
-  int nnue_piece_square_index(Color perspective, Piece pc) const;
-  int nnue_piece_hand_index(Color perspective, Piece pc) const;
-  int nnue_king_square_index(Square ksq) const;
-  bool free_drops() const;
-  bool fast_attacks() const;
-  bool fast_attacks2() const;
   bool checking_permitted() const;
   bool drop_checks() const;
   bool must_capture() const;
@@ -173,6 +165,7 @@ public:
   bool drop_loop() const;
   bool captures_to_hand() const;
   bool first_rank_pawn_drops() const;
+  bool drop_on_top() const;
   bool can_drop(Color c, PieceType pt) const;
   EnclosingRule enclosing_drop() const;
   Bitboard drop_region(Color c) const;
@@ -181,19 +174,14 @@ public:
   bool drop_opposite_colored_bishop() const;
   bool drop_promoted() const;
   PieceType drop_no_doubled() const;
-  PieceSet promotion_pawn_types(Color c) const;
-  PieceSet en_passant_types(Color c) const;
   bool immobility_illegal() const;
   bool gating() const;
-  bool walling() const;
-  WallingRule walling_rule() const;
-  bool wall_or_move() const;
-  Bitboard walling_region(Color c) const;
+  bool wall_gating() const;
   bool seirawan_gating() const;
   bool cambodian_moves() const;
   Bitboard diagonal_lines() const;
-  bool pass(Color c) const;
-  bool pass_on_stalemate(Color c) const;
+  bool pass() const;
+  bool pass_on_stalemate() const;
   Bitboard promoted_soldiers(Color c) const;
   bool makpong() const;
   EnclosingRule flip_enclosed_pieces() const;
@@ -209,20 +197,11 @@ public:
   int extinction_piece_count() const;
   int extinction_opponent_piece_count() const;
   bool extinction_pseudo_royal() const;
-  PieceType flag_piece(Color c) const;
-  Bitboard flag_region(Color c) const;
+  PieceType capture_the_flag_piece() const;
+  Bitboard capture_the_flag(Color c) const;
   bool flag_move() const;
-  bool flag_reached(Color c) const;
   bool check_counting() const;
   int connect_n() const;
-  PieceSet connect_piece_types() const;
-  bool connect_horizontal() const;
-  bool connect_vertical() const;
-  bool connect_diagonal() const;
-  const std::vector<Direction>& getConnectDirections() const;
-  int connect_nxn() const;
-  int collinear_n() const;
-
   CheckCount checks_remaining(Color c) const;
   MaterialCounting material_counting() const;
   CountingRule counting_rule() const;
@@ -267,7 +246,7 @@ public:
   Bitboard blockers_for_king(Color c) const;
   Bitboard check_squares(PieceType pt) const;
   Bitboard pinners(Color c) const;
-  Bitboard checked_pseudo_royals(Color c) const;
+  Bitboard attackers_to_pseudo_royals(Color c) const;
 
   // Attacks to/from a given square
   Bitboard attackers_to(Square s) const;
@@ -289,7 +268,6 @@ public:
   bool gives_check(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
-  const std::string piece_to_partner() const;
 
   // Piece specific
   bool pawn_passed(Color c, Square s) const;
@@ -311,7 +289,7 @@ public:
   // Accessing hash keys
   Key key() const;
   Key key_after(Move m) const;
-  Key material_key(EndgameEval e = EG_EVAL_CHESS) const;
+  Key material_key() const;
   Key pawn_key() const;
 
   // Other properties of the position
@@ -338,7 +316,6 @@ public:
   Score psq_score() const;
   Value non_pawn_material(Color c) const;
   Value non_pawn_material() const;
-  Bitboard fog_area() const;
 
   // Position consistency check, for debugging
   bool pos_is_ok() const;
@@ -387,7 +364,6 @@ private:
   void remove_from_hand(Piece pc);
   void drop_piece(Piece pc_hand, Piece pc_drop, Square s);
   void undrop_piece(Piece pc_hand, Square s);
-  Bitboard find_drop_region(Direction dir, Square s, Bitboard occupied) const;
 };
 
 extern std::ostream& operator<<(std::ostream& os, const Position& pos);
@@ -458,9 +434,9 @@ inline Square Position::promotion_square(Color c, Square s) const {
   return !b ? SQ_NONE : c == WHITE ? lsb(b) : msb(b);
 }
 
-inline PieceType Position::main_promotion_pawn_type(Color c) const {
+inline PieceType Position::promotion_pawn_type(Color c) const {
   assert(var != nullptr);
-  return var->mainPromotionPawnType[c];
+  return var->promotionPawnType[c];
 }
 
 inline PieceSet Position::promotion_piece_types(Color c) const {
@@ -508,19 +484,9 @@ inline bool Position::blast_on_capture() const {
   return var->blastOnCapture;
 }
 
-inline PieceSet Position::blast_immune_types() const {
+inline bool Position::endgame_eval() const {
   assert(var != nullptr);
-  return var->blastImmuneTypes;
-}
-
-inline PieceSet Position::mutually_immune_types() const {
-  assert(var != nullptr);
-  return var->mutuallyImmuneTypes;
-}
-
-inline EndgameEval Position::endgame_eval() const {
-  assert(var != nullptr);
-  return !count_in_hand(ALL_PIECES) && (var->endgameEval != EG_EVAL_CHESS || count<KING>() == 2) ? var->endgameEval : NO_EG_EVAL;
+  return var->endgameEval && !count_in_hand(ALL_PIECES) && count<KING>() == 2;
 }
 
 inline Bitboard Position::double_step_region(Color c) const {
@@ -597,39 +563,9 @@ inline bool Position::nnue_applicable() const {
   return (!count_in_hand(ALL_PIECES) || nnue_use_pockets() || !must_drop()) && !virtualPieces;
 }
 
-inline int Position::nnue_piece_square_index(Color perspective, Piece pc) const {
-  assert(var != nullptr);
-  return var->pieceSquareIndex[perspective][pc];
-}
-
-inline int Position::nnue_piece_hand_index(Color perspective, Piece pc) const {
-  assert(var != nullptr);
-  return var->pieceHandIndex[perspective][pc];
-}
-
-inline int Position::nnue_king_square_index(Square ksq) const {
-  assert(var != nullptr);
-  return var->kingSquareIndex[ksq];
-}
-
 inline bool Position::checking_permitted() const {
   assert(var != nullptr);
   return var->checking;
-}
-
-inline bool Position::free_drops() const {
-  assert(var != nullptr);
-  return var->freeDrops;
-}
-
-inline bool Position::fast_attacks() const {
-  assert(var != nullptr);
-  return var->fastAttacks;
-}
-
-inline bool Position::fast_attacks2() const {
-  assert(var != nullptr);
-  return var->fastAttacks2;
 }
 
 inline bool Position::drop_checks() const {
@@ -693,6 +629,11 @@ inline bool Position::first_rank_pawn_drops() const {
   return var->firstRankPawnDrops;
 }
 
+inline bool Position::drop_on_top() const {
+  assert(var != nullptr);
+  return var->dropOnTop;
+}
+
 inline EnclosingRule Position::enclosing_drop() const {
   assert(var != nullptr);
   return var->enclosingDrop;
@@ -700,12 +641,15 @@ inline EnclosingRule Position::enclosing_drop() const {
 
 inline Bitboard Position::drop_region(Color c) const {
   assert(var != nullptr);
-  return var->dropRegion[c];
+  return c == WHITE ? var->whiteDropRegion : var->blackDropRegion;
 }
 
 inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   Bitboard b = drop_region(c) & board_bb(c, pt);
 
+  // Connect4-style drops
+  if (drop_on_top())
+      b &= shift<NORTH>(pieces()) | Rank1BB;
   // Pawns on back ranks
   if (pt == PAWN)
   {
@@ -723,6 +667,7 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
   if (pt == ROOK && sittuyin_rook_drop())
       b &= rank_bb(relative_rank(c, RANK_1, max_rank()));
 
+  // Filter out squares where the drop does not enclose at least one opponent's piece
   if (enclosing_drop())
   {
       // Reversi start
@@ -730,7 +675,6 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
           b &= var->enclosingDropStart;
       else
       {
-          // Filter out squares where the drop does not enclose at least one opponent's piece
           if (enclosing_drop() == REVERSI)
           {
               Bitboard theirs = pieces(~c);
@@ -745,46 +689,6 @@ inline Bitboard Position::drop_region(Color c, PieceType pt) const {
                   if (!(attacks_bb(c, QUEEN, s, board_bb() & ~pieces(~c)) & ~PseudoAttacks[c][KING][s] & pieces(c)))
                       b ^= s;
               }
-          }
-          else if (enclosing_drop() == SNORT)
-          {
-              Bitboard theirs = pieces(~c);
-              b &=   ~(shift<NORTH     >(theirs) | shift<SOUTH     >(theirs)
-                  | shift<EAST      >(theirs) | shift<WEST      >(theirs));
-          }
-          else if (enclosing_drop() == ANYSIDE)
-          {
-              Bitboard occupied = pieces();
-              b = 0ULL;
-              Bitboard candidates = (shift<WEST>(occupied) | file_bb(max_file())) & ~occupied;
-
-              for (Rank r = RANK_1; r <= max_rank(); ++r) {
-                  if (!(occupied & make_square(FILE_A, r))) {
-                      b |= lsb(candidates & rank_bb(r));
-                  }
-              }
-              candidates = (shift<SOUTH>(occupied) | rank_bb(max_rank())) & ~occupied;
-              for (File f = FILE_A; f <= max_file(); ++f) {
-                  if (!(occupied & make_square(f, RANK_1))) {
-                      b |= lsb(candidates & file_bb(f));
-                  }
-              }
-              candidates = (shift<NORTH>(occupied) | rank_bb(RANK_1)) & ~occupied;
-              for (File f = FILE_A; f <= max_file(); ++f) {
-                  if (!(occupied & make_square(f, max_rank()))) {
-                      b |= lsb(candidates & file_bb(f));
-                  }
-              }
-              candidates = (shift<EAST>(occupied) | file_bb(FILE_A)) & ~occupied;
-              for (Rank r = RANK_1; r <= max_rank(); ++r) {
-                  if (!(occupied & make_square(max_file(), r))) {
-                      b |= lsb(candidates & rank_bb(r));
-                  }
-              }
-          }
-          else if (enclosing_drop() == TOP)
-          {
-              b &= shift<NORTH>(pieces()) | Rank1BB;
           }
           else
           {
@@ -821,16 +725,6 @@ inline PieceType Position::drop_no_doubled() const {
   return var->dropNoDoubled;
 }
 
-inline PieceSet Position::promotion_pawn_types(Color c) const {
-  assert(var != nullptr);
-  return var->promotionPawnTypes[c];
-}
-
-inline PieceSet Position::en_passant_types(Color c) const {
-  assert(var != nullptr);
-  return var->enPassantTypes[c];
-}
-
 inline bool Position::immobility_illegal() const {
   assert(var != nullptr);
   return var->immobilityIllegal;
@@ -841,24 +735,9 @@ inline bool Position::gating() const {
   return var->gating;
 }
 
-inline bool Position::walling() const {
+inline bool Position::wall_gating() const {
   assert(var != nullptr);
-  return var->wallingRule != NO_WALLING;
-}
-
-inline WallingRule Position::walling_rule() const {
-  assert(var != nullptr);
-  return var->wallingRule;
-}
-
-inline bool Position::wall_or_move() const {
-  assert(var != nullptr);
-  return var->wallOrMove;
-}
-
-inline Bitboard Position::walling_region(Color c) const {
-  assert(var != nullptr);
-  return var->wallingRegion[c];
+  return var->arrowGating || var->duckGating || var->staticGating || var->pastGating;
 }
 
 inline bool Position::seirawan_gating() const {
@@ -876,14 +755,14 @@ inline Bitboard Position::diagonal_lines() const {
   return var->diagonalLines;
 }
 
-inline bool Position::pass(Color c) const {
+inline bool Position::pass() const {
   assert(var != nullptr);
-  return var->pass[c] || var->passOnStalemate[c];
+  return var->pass || var->passOnStalemate;
 }
 
-inline bool Position::pass_on_stalemate(Color c) const {
+inline bool Position::pass_on_stalemate() const {
   assert(var != nullptr);
-  return var->passOnStalemate[c];
+  return var->passOnStalemate;
 }
 
 inline Bitboard Position::promoted_soldiers(Color c) const {
@@ -1036,12 +915,12 @@ inline bool Position::extinction_pseudo_royal() const {
   return var->extinctionPseudoRoyal;
 }
 
-inline PieceType Position::flag_piece(Color c) const {
+inline PieceType Position::capture_the_flag_piece() const {
   assert(var != nullptr);
-  return var->flagPiece[c];
+  return var->flagPiece;
 }
 
-inline Bitboard Position::flag_region(Color c) const {
+inline Bitboard Position::capture_the_flag(Color c) const {
   assert(var != nullptr);
   return var->flagRegion[c];
 }
@@ -1049,44 +928,6 @@ inline Bitboard Position::flag_region(Color c) const {
 inline bool Position::flag_move() const {
   assert(var != nullptr);
   return var->flagMove;
-}
-
-inline bool Position::flag_reached(Color c) const {
-  assert(var != nullptr);
-  bool simpleResult = 
-        (flag_region(c) & pieces(c, flag_piece(c)))
-        && (   popcount(flag_region(c) & pieces(c, flag_piece(c))) >= var->flagPieceCount
-            || (var->flagPieceBlockedWin && !(flag_region(c) & ~pieces())));
-      
-  if (simpleResult&&var->flagPieceSafe)
-  {
-      Bitboard piecesInFlagZone = flag_region(c) & pieces(c, flag_piece(c));
-      int potentialPieces = (popcount(piecesInFlagZone));
-      /*
-      There isn't a variant that uses it, but in the hypothetical game where the rules say I need 3
-      pieces in the flag zone and they need to be safe: If I have 3 pieces there, but one is under
-      threat, I don't think I can declare victory. If I have 4 there, but one is under threat, I
-      think that's victory.
-      */      
-      while (piecesInFlagZone)
-      {
-          Square sr = pop_lsb(piecesInFlagZone);
-          Bitboard flagAttackers = attackers_to(sr, ~c);
-
-          if ((potentialPieces < var->flagPieceCount) || (potentialPieces >= var->flagPieceCount + 1)) break;
-          while (flagAttackers)
-          {
-              Square currentAttack = pop_lsb(flagAttackers);
-              if (legal(make_move(currentAttack, sr)))
-              {
-                  potentialPieces--;
-                  break;
-              }
-          }
-      }
-      return potentialPieces >= var->flagPieceCount;
-  }
-  return simpleResult;
 }
 
 inline bool Position::check_counting() const {
@@ -1097,39 +938,6 @@ inline bool Position::check_counting() const {
 inline int Position::connect_n() const {
   assert(var != nullptr);
   return var->connectN;
-}
-
-inline PieceSet Position::connect_piece_types() const {
-  assert(var != nullptr);
-  return var->connectPieceTypesTrimmed;
-}
-
-inline bool Position::connect_horizontal() const {
-  assert(var != nullptr);
-  return var->connectHorizontal;
-}
-inline bool Position::connect_vertical() const {
-  assert(var != nullptr);
-  return var->connectVertical;
-}
-inline bool Position::connect_diagonal() const {
-  assert(var != nullptr);
-  return var->connectDiagonal;
-}
-
-inline const std::vector<Direction>& Position::getConnectDirections() const {
-    assert(var != nullptr);
-    return var->connectDirections;
-}
-
-inline int Position::connect_nxn() const {
-  assert(var != nullptr);
-  return var->connectNxN;
-}
-
-inline int Position::collinear_n() const {
-  assert(var != nullptr);
-  return var->collinearN;
 }
 
 inline CheckCount Position::checks_remaining(Color c) const {
@@ -1387,6 +1195,10 @@ inline Key Position::pawn_key() const {
   return st->pawnKey;
 }
 
+inline Key Position::material_key() const {
+  return st->materialKey;
+}
+
 inline Score Position::psq_score() const {
   return psq;
 }
@@ -1455,18 +1267,8 @@ inline bool Position::capture(Move m) const {
 inline Square Position::capture_square(Square to) const {
   assert(is_ok(to));
   // The capture square of en passant is either the marked ep piece or the closest piece behind the target square
-  Bitboard customEp = ep_squares() & pieces();
-  if (customEp)
-  {
-      // For longer custom en passant paths, we take the frontmost piece
-      return sideToMove == WHITE ? lsb(customEp) : msb(customEp);
-  }
-  else
-  {
-      // The capture square of normal en passant is the closest piece behind the target square
-      Bitboard epCandidates = pieces(~sideToMove) & forward_file_bb(~sideToMove, to);
-      return sideToMove == WHITE ? msb(epCandidates) : lsb(epCandidates);
-  }
+  Bitboard b = ep_squares() & pieces() ? ep_squares() & pieces() : pieces(~sideToMove) & forward_file_bb(~sideToMove, to);
+  return sideToMove == WHITE ? msb(b) : lsb(b);
 }
 
 inline bool Position::virtual_drop(Move m) const {
@@ -1476,29 +1278,6 @@ inline bool Position::virtual_drop(Move m) const {
 
 inline Piece Position::captured_piece() const {
   return st->capturedPiece;
-}
-
-inline Bitboard Position::fog_area() const {
-  Bitboard b = board_bb();
-  // Our own pieces are visible
-  Bitboard visible = pieces(sideToMove);
-  // Squares where we can move to are visible as well
-  for (const auto& m : MoveList<LEGAL>(*this))
-  {
-    Square to = to_sq(m);
-    visible |= to;
-  }
-  // Everything else is invisible
-  return ~visible & b;
-}
-
-inline const std::string Position::piece_to_partner() const {
-  if (!st->capturedPiece) return std::string();
-  Color color = color_of(st->capturedPiece);
-  Piece piece = st->capturedpromoted ?
-      (st->unpromotedCapturedPiece ? st->unpromotedCapturedPiece : make_piece(color, main_promotion_pawn_type(color))) :
-      st->capturedPiece;
-  return std::string(1, piece_to_char()[piece]);
 }
 
 inline Thread* Position::this_thread() const {
@@ -1586,18 +1365,18 @@ inline bool Position::allow_virtual_drop(Color c, PieceType pt) const {
 }
 
 inline Value Position::material_counting_result() const {
-  auto weight_count = [this](PieceType pt, int v){ return v * (count(WHITE, pt) - count(BLACK, pt)); };
+  auto weigth_count = [this](PieceType pt, int v){ return v * (count(WHITE, pt) - count(BLACK, pt)); };
   int materialCount;
   Value result;
   switch (var->materialCounting)
   {
   case JANGGI_MATERIAL:
-      materialCount =  weight_count(ROOK, 13)
-                     + weight_count(JANGGI_CANNON, 7)
-                     + weight_count(HORSE, 5)
-                     + weight_count(JANGGI_ELEPHANT, 3)
-                     + weight_count(WAZIR, 3)
-                     + weight_count(SOLDIER, 2)
+      materialCount =  weigth_count(ROOK, 13)
+                     + weigth_count(JANGGI_CANNON, 7)
+                     + weigth_count(HORSE, 5)
+                     + weigth_count(JANGGI_ELEPHANT, 3)
+                     + weigth_count(WAZIR, 3)
+                     + weigth_count(SOLDIER, 2)
                      - 1;
       result = materialCount > 0 ? VALUE_MATE : -VALUE_MATE;
       break;
