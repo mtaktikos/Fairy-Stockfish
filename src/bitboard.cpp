@@ -111,7 +111,7 @@ namespace {
   const std::map<Direction, int> GrasshopperDirectionsH { {EAST, 1}, {WEST, 1} };
   const std::map<Direction, int> GrasshopperDirectionsD { {NORTH_EAST, 1}, {SOUTH_EAST, 1}, {SOUTH_WEST, 1}, {NORTH_WEST, 1} };
 
-  enum MovementType { RIDER, HOPPER, LAME_LEAPER, HOPPER_RANGE };
+  enum MovementType { RIDER, HOPPER, LAME_LEAPER, HOPPER_RANGE, LOCUST };
 
   template <MovementType MT>
 #ifdef PRECOMPUTED_MAGICS
@@ -122,7 +122,7 @@ namespace {
 
   template <MovementType MT>
   Bitboard sliding_attack(std::map<Direction, int> directions, Square sq, Bitboard occupied, Color c = WHITE) {
-    assert(MT != LAME_LEAPER);
+    assert(MT != LAME_LEAPER && MT != LOCUST);
 
     Bitboard attack = 0;
 

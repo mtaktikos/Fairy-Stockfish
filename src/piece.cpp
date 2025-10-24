@@ -58,6 +58,7 @@ namespace {
       p->betza = betza;
       std::vector<MoveModality> moveModalities = {};
       bool hopper = false;
+      bool locust = false;
       bool rider = false;
       bool lame = false;
       bool initial = false;
@@ -77,6 +78,9 @@ namespace {
               if (c == 'g')
                   distance = 1;
           }
+          // Locust (hopper that captures the hurdle)
+          else if (c == 'o')
+              locust = true;
           // Lame leaper
           else if (c == 'n')
               lame = true;
@@ -166,10 +170,14 @@ namespace {
                           v[Direction(atom.first * FILE_NB - atom.second)] = distance;
                   }
               }
+              // Set locust flag if both hopper and locust modifiers are present
+              if (hopper && locust)
+                  p->locust = true;
               // Reset state
               moveModalities.clear();
               prelimDirections.clear();
               hopper = false;
+              locust = false;
               rider = false;
               lame = false;
               initial = false;
