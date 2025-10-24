@@ -20,6 +20,7 @@
 
 #include "movegen.h"
 #include "position.h"
+#include "piece.h"
 
 namespace Stockfish {
 
@@ -299,8 +300,20 @@ namespace {
 
         Bitboard attacks = pos.attacks_from(Us, Pt, from);
         Bitboard quiets = pos.moves_from(Us, Pt, from);
-        Bitboard b = (  (attacks & pos.pieces())
-                       | (quiets & ~pos.pieces()));
+        
+        // Locust hoppers: can only land on empty squares, but capture the hurdle
+        Bitboard b;
+        if (pieceMap.find(Pt)->second->locust)
+        {
+            // For locust hoppers, all reachable empty squares are potential moves
+            // These moves capture the hurdle, so we treat them as captures
+            b = attacks & ~pos.pieces();
+        }
+        else
+        {
+            b = (  (attacks & pos.pieces())
+                   | (quiets & ~pos.pieces()));
+        }
         Bitboard b1 = b & target;
         Bitboard promotion_zone = pos.promotion_zone(Us);
         PieceType promPt = pos.promoted_piece_type(Pt);
@@ -341,8 +354,17 @@ namespace {
                 b3 &= pos.check_squares(type_of(pos.unpromoted_piece_on(from)));
         }
 
-        while (b1)
-            moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, from, pop_lsb(b1));
+        // Locust hoppers use EN_PASSANT move type to capture the hurdle
+        if (pieceMap.find(Pt)->second->locust)
+        {
+            while (b1)
+                moveList = make_move_and_gating<EN_PASSANT>(pos, moveList, Us, from, pop_lsb(b1));
+        }
+        else
+        {
+            while (b1)
+                moveList = make_move_and_gating<NORMAL>(pos, moveList, Us, from, pop_lsb(b1));
+        }
 
         // Shogi-style piece promotions
         while (b2)

@@ -24,6 +24,7 @@
 #include <sstream>
 
 #include "bitboard.h"
+#include "piece.h"
 #include "misc.h"
 #include "movegen.h"
 #include "position.h"
@@ -1608,12 +1609,28 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
       if (type_of(m) == EN_PASSANT)
       {
-          capsq = capture_square(to);
+          // For locust hoppers, find the hurdle between from and to
+          PieceType pt = type_of(pc);
+          if (pieceMap.find(pt)->second->locust)
+          {
+              // Find the piece between from and to (the hurdle)
+              Bitboard path = between_bb(from, to) & pieces();
+              assert(path); // There must be a hurdle
+              // The hurdle is the first piece on the path from 'from' towards 'to'
+              capsq = us == WHITE ? lsb(path) : msb(path);
+          }
+          else
+          {
+              capsq = capture_square(to);
+          }
           st->captureSquare = capsq;
 
-          assert(st->epSquares & to);
-          assert(var->enPassantRegion[us] & to);
-          assert(piece_on(to) == NO_PIECE);
+          if (!pieceMap.find(pt)->second->locust)
+          {
+              assert(st->epSquares & to);
+              assert(var->enPassantRegion[us] & to);
+              assert(piece_on(to) == NO_PIECE);
+          }
       }
 
       // If the captured piece is a pawn, update pawn hash key, otherwise

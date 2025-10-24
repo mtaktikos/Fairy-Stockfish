@@ -1327,7 +1327,7 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
       b &= ~pieces(pt);
       b &= attacks_bb(c, pt, s, pieces() ^ pieces(pt));
   }
-  // Janggi palace moves
+  // Locust hopper restrictions: can only land on empty squares
   if (diagonal_lines() & s)
   {
       PieceType diagType = movePt == WAZIR ? FERS : movePt == SOLDIER ? PAWN : movePt == ROOK ? BISHOP : NO_PIECE_TYPE;
