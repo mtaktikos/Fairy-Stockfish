@@ -64,6 +64,14 @@ struct Variant {
   bool mandatoryPiecePromotion = false;
   bool pieceDemotion = false;
   bool blastOnCapture = false;
+  PieceSet blastImmuneTypes = NO_PIECE_SET;
+  PieceSet mutuallyImmuneTypes = NO_PIECE_SET;
+  // Allow capturing pieces of the same color (friendly capture)
+  bool selfCapture = false;
+  // Iron pieces: attempts to capture these piece types are illegal
+  PieceSet ironPieceTypes = NO_PIECE_SET;
+  PieceSet petrifyOnCaptureTypes = NO_PIECE_SET;
+  bool petrifyBlastPieces = false;
   bool petrifyOnCapture = false;
   bool doubleStep = true;
   Bitboard doubleStepRegion[COLOR_NB] = {Rank2BB, Rank7BB};
