@@ -140,6 +140,9 @@ public:
   bool mandatory_piece_promotion() const;
   bool piece_demotion() const;
   bool blast_on_capture() const;
+  PieceSet blast_immune_types() const;
+  PieceSet mutually_immune_types() const;
+  PieceSet iron_piece_types() const;
   bool endgame_eval() const;
   Bitboard double_step_region(Color c) const;
   Bitboard triple_step_region(Color c) const;
@@ -158,6 +161,7 @@ public:
   bool nnue_applicable() const;
   bool checking_permitted() const;
   bool drop_checks() const;
+  bool self_capture() const;
   bool must_capture() const;
   bool has_capture() const;
   bool must_drop() const;
@@ -484,6 +488,21 @@ inline bool Position::blast_on_capture() const {
   return var->blastOnCapture;
 }
 
+inline PieceSet Position::blast_immune_types() const {
+  assert(var != nullptr);
+  return var->blastImmuneTypes;
+}
+
+inline PieceSet Position::mutually_immune_types() const {
+  assert(var != nullptr);
+  return var->mutuallyImmuneTypes;
+}
+
+inline PieceSet Position::iron_piece_types() const {
+  assert(var != nullptr);
+  return var->ironPieceTypes;
+}
+
 inline bool Position::endgame_eval() const {
   assert(var != nullptr);
   return var->endgameEval && !count_in_hand(ALL_PIECES) && count<KING>() == 2;
@@ -571,6 +590,11 @@ inline bool Position::checking_permitted() const {
 inline bool Position::drop_checks() const {
   assert(var != nullptr);
   return var->dropChecks;
+}
+
+inline bool Position::self_capture() const {
+  assert(var != nullptr);
+  return var->selfCapture;
 }
 
 inline bool Position::must_capture() const {
