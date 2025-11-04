@@ -1415,6 +1415,16 @@ inline Value Position::material_counting_result() const {
   case BLACK_DRAW_ODDS:
       result = -VALUE_MATE;
       break;
+  case RUTAR_MATERIAL:
+      materialCount =  weigth_count(QUEEN, 9)
+                     + weigth_count(ROOK, 5)
+                     + weigth_count(BISHOP, 3)
+                     + weigth_count(KNIGHT, 3)
+                     + weigth_count(PAWN, 1);
+      result =  materialCount > 0 ? VALUE_MORE
+              : materialCount < 0 ? VALUE_LESS
+              :                     VALUE_COWARD;
+      break;
   default:
       assert(false);
       result = VALUE_DRAW;
