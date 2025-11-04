@@ -40,4 +40,7 @@ src/*.txt
 
 # IDEs
 .vscode
-.idea*.exp
+.idea
+
+# Test expect files
+*.exp
