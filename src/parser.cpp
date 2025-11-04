@@ -83,9 +83,11 @@ namespace {
                 : value == "unweighted" ? UNWEIGHTED_MATERIAL
                 : value == "whitedrawodds" ? WHITE_DRAW_ODDS
                 : value == "blackdrawodds" ? BLACK_DRAW_ODDS
+                : value == "rutar" ? RUTAR_MATERIAL
                 : NO_MATERIAL_COUNTING;
         return   value == "janggi" || value == "unweighted"
-              || value == "whitedrawodds" || value == "blackdrawodds" || value == "none";
+              || value == "whitedrawodds" || value == "blackdrawodds"
+              || value == "rutar" || value == "none";
     }
 
     template <> bool set(const std::string& value, CountingRule& target) {
