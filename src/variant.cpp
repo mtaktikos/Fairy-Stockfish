@@ -72,9 +72,8 @@ namespace {
         v->materialCounting = BLACK_DRAW_ODDS;
         return v;
     }
-    // Rutar
-    // Chess with weighted material counting on draws (stalemate, 50-move, repetition)
-    // Weights: Queen=9, Rook=5, Bishop=3, Knight=3, Pawn=1
+	 // Armageddon Chess
+    // https://en.wikipedia.org/wiki/Fast_chess#Armageddon
     Variant* rutar_variant() {
         Variant* v = chess_variant()->init();
         v->materialCounting = RUTAR_MATERIAL;
@@ -1765,128 +1764,9 @@ void VariantMap::init() {
     // Add to UCI_Variant option
     add("chess", chess_variant());
     add("normal", chess_variant());
-    add("fischerandom", chess960_variant());
-    add("nocastle", nocastle_variant());
-    add("armageddon", armageddon_variant());
-    add("rutar", rutar_variant());
-    add("torpedo", torpedo_variant());
-    add("berolina", berolina_variant());
-    add("pawnsideways", pawnsideways_variant());
-    add("pawnback", pawnback_variant());
-    add("legan", legan_variant());
-    add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
-    add("makruk", makruk_variant());
-    add("makpong", makpong_variant());
-    add("cambodian", cambodian_variant());
-    add("karouk", karouk_variant());
-    add("asean", asean_variant());
-    add("ai-wok", aiwok_variant());
-    add("shatranj", shatranj_variant());
-    add("chaturanga", chaturanga_variant());
-    add("amazon", amazon_variant());
-    add("nightrider", nightrider_variant());
-    add("grasshopper", grasshopper_variant());
-    add("hoppelpoppel", hoppelpoppel_variant());
-    add("newzealand", newzealand_variant());
-    add("kingofthehill", kingofthehill_variant());
-    add("racingkings", racingkings_variant());
-    add("knightmate", knightmate_variant());
-    add("losers", losers_variant());
-    add("giveaway", giveaway_variant());
-    add("antichess", antichess_variant());
-    add("suicide", suicide_variant());
-    add("codrus", codrus_variant());
-    add("extinction", extinction_variant());
-    add("kinglet", kinglet_variant());
-    add("threekings", threekings_variant());
-    add("horde", horde_variant());
-    add("nocheckatomic", nocheckatomic_variant());
-    add("atomic", atomic_variant());
-    add("isolation", isolation_variant());
-    add("isolation7x7", isolation7x7_variant());
-    add("snailtrail", snailtrail_variant());
-#ifdef ALLVARS
-    add("duck", duck_variant());
-#endif
-    add("joust", joust_variant());
-    add("3check", threecheck_variant());
-    add("5check", fivecheck_variant());
-    add("crazyhouse", crazyhouse_variant());
-    add("loop", loop_variant());
-    add("captureanything", captureanything_variant());
-    add("recycle", recycle_variant());
-    add("chessgi", chessgi_variant());
-    add("bughouse", bughouse_variant());
-    add("koedem", koedem_variant());
-    add("pocketknight", pocketknight_variant());
-    add("placement", placement_variant());
-    add("sittuyin", sittuyin_variant());
-    add("seirawan", seirawan_variant());
-    add("shouse", shouse_variant());
-    add("dragon", dragon_variant());
-    add("paradigm", paradigm_variant());
-    add("minishogi", minishogi_variant());
-    add("mini", minishogi_variant());
-    add("kyotoshogi", kyotoshogi_variant());
-    add("micro", microshogi_variant());
-    add("dobutsu", dobutsu_variant());
-    add("gorogoro", gorogoroshogi_variant());
-    add("judkins", judkinsshogi_variant());
-    add("torishogi", torishogi_variant());
-    add("euroshogi", euroshogi_variant());
-    add("losalamos", losalamos_variant());
-    add("gardner", gardner_variant());
-    add("almost", almost_variant());
-    add("chigorin", chigorin_variant());
-    add("perfect", perfect_variant());
-    add("spartan", spartan_variant());
-    add("shatar", shatar_variant());
-    add("coregal", coregal_variant());
-    add("clobber", clobber_variant());
-    add("breakthrough", breakthrough_variant());
-    add("ataxx", ataxx_variant());
-    add("flipersi", flipersi_variant());
-    add("flipello", flipello_variant());
-    add("minixiangqi", minixiangqi_variant());
-    add("raazuvaa", raazuvaa_variant());
-#ifdef LARGEBOARDS
-    add("shogi", shogi_variant());
-    add("shoshogi", shoshogi_variant());
-    add("yarishogi", yarishogi_variant());
-    add("okisakishogi", okisakishogi_variant());
-    add("capablanca", capablanca_variant());
-    add("capahouse", capahouse_variant());
-    add("caparandom", caparandom_variant());
-    add("gothic", gothic_variant());
-    add("janus", janus_variant());
-    add("modern", modern_variant());
-    add("chancellor", chancellor_variant());
-    add("embassy", embassy_variant());
-    add("centaur", centaur_variant());
-    add("gustav3", gustav3_variant());
-    add("jesonmor", jesonmor_variant());
-    add("courier", courier_variant());
-    add("grand", grand_variant());
-    add("opulent", opulent_variant());
-    add("tencubed", tencubed_variant());
-    add("omicron", omicron_variant());
-    add("troitzky", troitzky_variant());
-    add("wolf", wolf_variant());
-    add("shako", shako_variant());
-    add("clobber10", clobber10_variant());
-    add("flipello10", flipello10_variant());
-#ifdef ALLVARS
-    add("amazons", amazons_variant());
-#endif
-    add("xiangqi", xiangqi_variant());
-    add("manchu", manchu_variant());
-    add("supply", supply_variant());
-    add("janggi", janggi_variant());
-    add("janggitraditional", janggi_traditional_variant());
-    add("janggimodern", janggi_modern_variant());
-    add("janggicasual", janggi_casual_variant());
-#endif
-}
+   add("rutar", rutar_variant());
+	 add("fairy", fairy_variant()); // fairy variant used for endgame code initialization
+    }
 
 
 /// VariantMap::parse_istream reads variants from an INI-style configuration input stream.
