@@ -72,6 +72,14 @@ namespace {
         v->materialCounting = BLACK_DRAW_ODDS;
         return v;
     }
+    // Rutar
+    // Chess with weighted material counting on draws (stalemate, 50-move, repetition)
+    // Weights: Queen=9, Rook=5, Bishop=3, Knight=3, Pawn=1
+    Variant* rutar_variant() {
+        Variant* v = chess_variant()->init();
+        v->materialCounting = RUTAR_MATERIAL;
+        return v;
+    }
     // Torpedo Chess
     // https://arxiv.org/abs/2009.04374
     Variant* torpedo_variant() {
@@ -1760,6 +1768,7 @@ void VariantMap::init() {
     add("fischerandom", chess960_variant());
     add("nocastle", nocastle_variant());
     add("armageddon", armageddon_variant());
+    add("rutar", rutar_variant());
     add("torpedo", torpedo_variant());
     add("berolina", berolina_variant());
     add("pawnsideways", pawnsideways_variant());
