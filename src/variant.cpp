@@ -48,6 +48,7 @@ namespace {
     Variant* chess_variant() {
         Variant* v = chess_variant_base()->init();
         v->nnueAlias = "nn-";
+        v->materialCounting = RUTAR_MATERIAL;
         return v;
     }
     // Rutar Chess
