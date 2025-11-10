@@ -553,7 +553,12 @@ string UCI::move(const Position& pos, Move m) {
 
   // Wall square
   if (pos.walling() && CurrentProtocol != XBOARD)
-      move += "," + UCI::square(pos, to) + UCI::square(pos, gating_square(m));
+  {
+      // For HOLE walling, the gating square is always the from square (reverse of the move),
+      // so we can omit the redundant notation
+      if (pos.walling_rule() != HOLE)
+          move += "," + UCI::square(pos, to) + UCI::square(pos, gating_square(m));
+  }
 
   return move;
 }
@@ -578,13 +583,14 @@ Move UCI::to_move(const Position& pos, string& str) {
       if (str == UCI::move(pos, m) || (is_pass(m) && str == UCI::square(pos, from_sq(m)) + UCI::square(pos, to_sq(m))))
           return m;
 
-  // For HOLE walling, try adding the wall square automatically (always the from square)
-  if (pos.walling_rule() == HOLE && str.length() >= 4 && str.find(',') == string::npos)
+  // For HOLE walling, accept old format with explicit wall square notation for backward compatibility
+  if (pos.walling_rule() == HOLE && str.length() > 4 && str.find(',') != string::npos)
   {
-      string fromSq = str.substr(0, 2);
-      string extendedStr = str + "," + (str.length() >= 4 ? str.substr(2, 2) : fromSq) + fromSq;
+      // Try stripping the wall square notation and matching the simplified form
+      size_t comma_pos = str.find(',');
+      string simplifiedStr = str.substr(0, comma_pos);
       for (const auto& m : MoveList<LEGAL>(pos))
-          if (extendedStr == UCI::move(pos, m))
+          if (simplifiedStr == UCI::move(pos, m))
               return m;
   }
 
