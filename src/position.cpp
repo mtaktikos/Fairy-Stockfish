@@ -2512,12 +2512,45 @@ bool Position::see_ge(Move m, Value threshold) const {
 
   // Extinction
   if (   extinction_value() != VALUE_NONE
-      && piece_on(to)
-      && (   (   (extinction_piece_types() & type_of(piece_on(to)))
-              && pieceCount[piece_on(to)] == extinction_piece_count() + 1)
-          || (   (extinction_piece_types() & ALL_PIECES)
-              && count<ALL_PIECES>(~sideToMove) == extinction_piece_count() + 1)))
-      return extinction_value() < VALUE_ZERO;
+      && piece_on(to))
+  {
+      PieceType capturedType = type_of(piece_on(to));
+      if (extinction_piece_types() & capturedType)
+      {
+          // Check if capturing this piece would cause extinction
+          // For pieces that can promote, check the combined count
+          int totalCount = pieceCount[piece_on(to)];
+          // Check if the captured piece is a promoted piece of an extinction type
+          for (PieceSet ps = extinction_piece_types(); ps;)
+          {
+              PieceType pt = pop_lsb(ps);
+              if (capturedType == pt)
+              {
+                  // Add promoted pieces to the count
+                  PieceType promotedPt = var->promotedPieceType[pt];
+                  if (promotedPt != NO_PIECE_TYPE)
+                      totalCount += count(~sideToMove, promotedPt);
+                  
+                  if (totalCount == extinction_piece_count() + 1)
+                      return extinction_value() < VALUE_ZERO;
+                  break;
+              }
+              else if (var->promotedPieceType[pt] == capturedType)
+              {
+                  // The captured piece is the promoted form of an extinction type
+                  // Add unpromoted pieces to the count
+                  totalCount += count(~sideToMove, pt);
+                  
+                  if (totalCount == extinction_piece_count() + 1)
+                      return extinction_value() < VALUE_ZERO;
+                  break;
+              }
+          }
+      }
+      else if ((extinction_piece_types() & ALL_PIECES)
+            && count<ALL_PIECES>(~sideToMove) == extinction_piece_count() + 1)
+          return extinction_value() < VALUE_ZERO;
+  }
 
   // Do not evaluate SEE if value would be unreliable
   if (must_capture() || !checking_permitted() || is_gating(m) || count<CLOBBER_PIECE>() == count<ALL_PIECES>())
@@ -2796,8 +2829,18 @@ bool Position::is_immediate_game_end(Value& result, int ply) const {
           for (PieceSet ps = extinction_piece_types(); ps;)
           {
               PieceType pt = pop_lsb(ps);
-              if (   count_with_hand( c, pt) <= var->extinctionPieceCount
-                  && count_with_hand(~c, pt) >= var->extinctionOpponentPieceCount + (extinction_claim() && c == sideToMove))
+              // Count both unpromoted and promoted pieces for extinction
+              int totalPieceCount = count_with_hand(c, pt);
+              int totalOpponentPieceCount = count_with_hand(~c, pt);
+              // If this piece type has a promoted form, also count those
+              PieceType promotedPt = var->promotedPieceType[pt];
+              if (promotedPt != NO_PIECE_TYPE)
+              {
+                  totalPieceCount += count_with_hand(c, promotedPt);
+                  totalOpponentPieceCount += count_with_hand(~c, promotedPt);
+              }
+              if (   totalPieceCount <= var->extinctionPieceCount
+                  && totalOpponentPieceCount >= var->extinctionOpponentPieceCount + (extinction_claim() && c == sideToMove))
               {
                   result = c == sideToMove ? extinction_value(ply) : -extinction_value(ply);
                   return true;
