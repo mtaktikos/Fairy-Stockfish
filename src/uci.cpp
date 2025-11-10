@@ -544,7 +544,7 @@ string UCI::move(const Position& pos, Move m) {
       move += '+';
   else if (type_of(m) == PIECE_DEMOTION)
       move += '-';
-  else if (is_gating(m))
+  else if (is_gating(m) && !pos.walling())
   {
       move += pos.piece_to_char()[make_piece(BLACK, gating_type(m))];
       if (gating_square(m) != from)
