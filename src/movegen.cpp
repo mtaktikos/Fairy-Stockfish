@@ -173,7 +173,8 @@ namespace {
     Bitboard blcp = blc & standardPromotionZone;
 
     // Restrict regions based on rules and move generation type
-    if (pos.mandatory_pawn_promotion())
+    // For HOLE walling, allow pawn moves within promotion zone as they create walls
+    if (pos.mandatory_pawn_promotion() && pos.walling_rule() != HOLE)
     {
         b1 &= ~standardPromotionZone;
         b2 &= ~standardPromotionZone;
