@@ -41,3 +41,4 @@ src/*.txt
 # IDEs
 .vscode
 .idea*.exp
+dist/
