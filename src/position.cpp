@@ -1660,9 +1660,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           board[capsq] = NO_PIECE;
       if (captures_to_hand())
       {
-          Piece pieceToHand = !capturedPromoted || drop_loop() ? ~captured
-                             : unpromotedCaptured ? ~unpromotedCaptured
-                                                  : make_piece(~color_of(captured), main_promotion_pawn_type(color_of(captured)));
+          Piece pieceToHand = !capturedPromoted || drop_loop() ? (color_of(captured) == us ? captured : ~captured)
+                             : unpromotedCaptured ? (color_of(unpromotedCaptured) == us ? unpromotedCaptured : ~unpromotedCaptured)
+                                                  : make_piece(us, main_promotion_pawn_type(color_of(captured)));
           add_to_hand(pieceToHand);
           k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
               ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
@@ -2045,9 +2045,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           board[bsq] = NO_PIECE;
           if (captures_to_hand())
           {
-              Piece pieceToHand = !capturedPromoted || drop_loop() ? ~bpc
-                                 : unpromotedCaptured ? ~unpromotedCaptured
-                                                      : make_piece(~color_of(bpc), PAWN);
+              Piece pieceToHand = !capturedPromoted || drop_loop() ? (color_of(bpc) == us ? bpc : ~bpc)
+                                 : unpromotedCaptured ? (color_of(unpromotedCaptured) == us ? unpromotedCaptured : ~unpromotedCaptured)
+                                                      : make_piece(us, PAWN);
               add_to_hand(pieceToHand);
               k ^=  Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)] - 1]
                   ^ Zobrist::inHand[pieceToHand][pieceCountInHand[color_of(pieceToHand)][type_of(pieceToHand)]];
@@ -2189,8 +2189,8 @@ void Position::undo_move(Move m) {
           {
               put_piece(bpc, bsq, isPromoted, st->demotedBycatch & bsq ? unpromotedBpc : NO_PIECE);
               if (captures_to_hand())
-                  remove_from_hand(!drop_loop() && (st->promotedBycatch & bsq) ? make_piece(~color_of(unpromotedBpc), PAWN)
-                                                                               : ~unpromotedBpc);
+                  remove_from_hand(!drop_loop() && (st->promotedBycatch & bsq) ? make_piece(us, PAWN)
+                                                                               : (color_of(unpromotedBpc) == us ? unpromotedBpc : ~unpromotedBpc));
           }
       }
       // Reset piece since it exploded itself
@@ -2260,9 +2260,9 @@ void Position::undo_move(Move m) {
 
           put_piece(st->capturedPiece, capsq, st->capturedpromoted, st->unpromotedCapturedPiece); // Restore the captured piece
           if (captures_to_hand())
-              remove_from_hand(!drop_loop() && st->capturedpromoted ? (st->unpromotedCapturedPiece ? ~st->unpromotedCapturedPiece
-                                                                                                   : make_piece(~color_of(st->capturedPiece), main_promotion_pawn_type(us)))
-                                                                    : ~st->capturedPiece);
+              remove_from_hand(!drop_loop() && st->capturedpromoted ? (st->unpromotedCapturedPiece ? (color_of(st->unpromotedCapturedPiece) == us ? st->unpromotedCapturedPiece : ~st->unpromotedCapturedPiece)
+                                                                                                   : make_piece(us, main_promotion_pawn_type(us)))
+                                                                    : (color_of(st->capturedPiece) == us ? st->capturedPiece : ~st->capturedPiece));
       }
   }
 
