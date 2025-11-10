@@ -634,6 +634,25 @@ namespace {
         v->nnueAlias = "crazyhouse";
         return v;
     }
+
+    //Capture-Anything
+    // https://www.chess.com/terms/capture-anything-chess
+    Variant* captureanything_variant() {
+        Variant* v = chess_variant_base()->init();
+        v->castling = false;
+        v->selfCapture = true;
+        return v;
+    }
+
+    //RecycleChess
+    // https://brainking.com/en/GameRules?tp=9
+    Variant* recycle_variant() {
+        Variant* v = crazyhouse_variant()->init();
+        v->dropLoop = true;
+        v->selfCapture = true;
+        return v;
+    }
+
     // Chessgi
     // Variant of loop chess where pawns can be dropped to the first rank
     // https://en.wikipedia.org/wiki/Crazyhouse#Variations
@@ -1881,6 +1900,8 @@ void VariantMap::init() {
     add("crazyhouse", crazyhouse_variant());
     add("loop", loop_variant());
     add("chessgi", chessgi_variant());
+    add("captureanything", captureanything_variant());
+    add("recycle", recycle_variant());
     add("bughouse", bughouse_variant());
     add("koedem", koedem_variant());
     add("pocketknight", pocketknight_variant());
