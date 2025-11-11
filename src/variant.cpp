@@ -650,6 +650,9 @@ namespace {
         Variant* v = crazyhouse_variant()->init();
         v->dropLoop = true;
         v->selfCapture = true;
+        v->capturesToHand = false;
+        v->promotionPieceTypes[WHITE] = NO_PIECE_SET;
+        v->promotionPieceTypes[BLACK] = NO_PIECE_SET;
         return v;
     }
 
