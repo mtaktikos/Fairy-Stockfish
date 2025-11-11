@@ -97,6 +97,7 @@ struct Variant {
   bool pieceDrops = false;
   bool dropLoop = false;
   bool capturesToHand = false;
+  bool capturesToHandOnlyOwnColor = false;
   bool firstRankPawnDrops = false;
   bool promotionZonePawnDrops = false;
   EnclosingRule enclosingDrop = NO_ENCLOSING;

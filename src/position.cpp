@@ -1658,7 +1658,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
       if (type_of(m) == EN_PASSANT)
           board[capsq] = NO_PIECE;
-      if (captures_to_hand())
+      if (captures_to_hand() && (!captures_to_hand_only_own_color() || color_of(captured) == us))
       {
           Piece pieceToHand = !capturedPromoted || drop_loop() ? (color_of(captured) == us ? captured : ~captured)
                              : unpromotedCaptured ? (color_of(unpromotedCaptured) == us ? unpromotedCaptured : ~unpromotedCaptured)
@@ -2043,7 +2043,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               st->promotedBycatch |= bsq;
           remove_piece(bsq);
           board[bsq] = NO_PIECE;
-          if (captures_to_hand())
+          if (captures_to_hand() && (!captures_to_hand_only_own_color() || color_of(bpc) == us))
           {
               Piece pieceToHand = !capturedPromoted || drop_loop() ? (color_of(bpc) == us ? bpc : ~bpc)
                                  : unpromotedCaptured ? (color_of(unpromotedCaptured) == us ? unpromotedCaptured : ~unpromotedCaptured)

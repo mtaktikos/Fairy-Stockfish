@@ -174,6 +174,7 @@ public:
   bool piece_drops() const;
   bool drop_loop() const;
   bool captures_to_hand() const;
+  bool captures_to_hand_only_own_color() const;
   bool first_rank_pawn_drops() const;
   bool can_drop(Color c, PieceType pt) const;
   EnclosingRule enclosing_drop() const;
@@ -698,6 +699,11 @@ inline bool Position::drop_loop() const {
 inline bool Position::captures_to_hand() const {
   assert(var != nullptr);
   return var->capturesToHand;
+}
+
+inline bool Position::captures_to_hand_only_own_color() const {
+  assert(var != nullptr);
+  return var->capturesToHandOnlyOwnColor;
 }
 
 inline bool Position::first_rank_pawn_drops() const {
