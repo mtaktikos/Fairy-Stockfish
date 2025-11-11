@@ -1886,25 +1886,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           }
       }
 
-      // Pawns disappear when reaching promotion zone if there are no promotion pieces
-      if (   type_of(m) == NORMAL
-          && (promotion_zone(us) & to)
-          && !promotion_piece_types(us))
-      {
-          remove_piece(to);
-
-          if (Eval::useNNUE)
-          {
-              // Pawn disappears
-              dp.to[0] = SQ_NONE;
-              dp.handPiece[0] = NO_PIECE;
-          }
-
-          // Update hash key to remove the pawn from the target square
-          k ^= Zobrist::psq[pc][to];
-          st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]];
-      }
-
       // Update pawn hash key
       st->pawnKey ^= (type_of(m) != DROP ? Zobrist::psq[pc][from] : 0) ^ Zobrist::psq[pc][to];
   }
