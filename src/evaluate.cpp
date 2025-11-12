@@ -1490,7 +1490,8 @@ namespace {
     // Initialize score by reading the incrementally updated scores included in
     // the position object (material + piece square tables) and the material
     // imbalance. Score is computed internally from the white point of view.
-    Score score = pos.psq_score();
+    // Reduce piece values to 1/5 of their influence
+    Score score = pos.psq_score() / 5;
     if (T)
         Trace::add(MATERIAL, score);
     score += me->imbalance() + pos.this_thread()->trend;
@@ -1529,7 +1530,8 @@ namespace {
             score += hand<WHITE>(pt) - hand<BLACK>(pt);
         }
 
-    score += (mobility[WHITE] - mobility[BLACK]) * (1 + pos.captures_to_hand() + pos.must_capture() + pos.check_counting());
+    // Increase mobility influence by factor 5
+    score += (mobility[WHITE] - mobility[BLACK]) * 5 * (1 + pos.captures_to_hand() + pos.must_capture() + pos.check_counting());
 
     // More complex interactions that require fully populated attack bitboards
     score +=  king<   WHITE>() - king<   BLACK>()
