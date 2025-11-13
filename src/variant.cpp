@@ -1135,19 +1135,44 @@ namespace {
     // https://en.wikipedia.org/wiki/Clobber
     Variant* clobber_variant() {
         Variant* v = chess_variant_base()->init();
-        v->pieceToCharTable = "P.................p.................";
+	   v->pieceToCharTable = ".................U.................u.";
         v->maxRank = RANK_6;
         v->maxFile = FILE_E;
         v->reset_pieces();
-        v->add_piece(CLOBBER_PIECE, 'p');
-        v->startFen = "PpPpP/pPpPp/PpPpP/pPpPp/PpPpP/pPpPp w 0 1";
+        v->add_piece(CLOBBER_PIECE, 'u');
+        v->startFen = "UuUuU/uUuUu/UuUuU/uUuUu/UuUuU/uUuuu w 0 1";
         v->doubleStep = false;
         v->castling = false;
         v->stalemateValue = -VALUE_MATE;
         v->immobilityIllegal = false;
         return v;
     }
-    // Breakthrough
+	// CannibalClobber
+    Variant* cannibalclobber5x4_variant() {
+		Variant* v = clobber_variant()->init();
+		 v->maxRank = RANK_4;
+        v->maxFile = FILE_E;
+         v->startFen = "uUuUu/UuUuU/uUuUu/UuUuU w 0 1";
+	    v->selfCapture = true;
+        return v;
+    }
+     Variant* cannibalclobber6x6_variant() {
+		Variant* v = clobber_variant()->init();
+		 v->maxRank = RANK_6;
+        v->maxFile = FILE_F;
+         v->startFen = "uUuUuU/UuUuUu/uUuUuU/UuUuUu/uUuUuU/UuUuUu w 0 1";
+	    v->selfCapture = true;
+        return v;
+    }
+	 Variant* cannibalclobber8x8_variant() {
+		Variant* v = clobber_variant()->init();
+		 v->maxRank = RANK_8;
+        v->maxFile = FILE_H;
+         v->startFen = "uUuUuUuU/UuUuUuUu/uUuUuUuU/UuUuUuUu/uUuUuUuU/UuUuUuUu/uUuUuUuU/UuUuUuUu w 0 1";
+	    v->selfCapture = true;
+        return v;
+    }
+	    // Breakthrough
     // https://en.wikipedia.org/wiki/Breakthrough_(board_game)
     Variant* breakthrough_variant() {
         Variant* v = chess_variant_base()->init();
@@ -1932,7 +1957,10 @@ void VariantMap::init() {
     add("shatar", shatar_variant());
     add("coregal", coregal_variant());
     add("clobber", clobber_variant());
-    add("breakthrough", breakthrough_variant());
+	add("cannibalclobber5x4", cannibalclobber5x4_variant());
+	add("cannibalclobber6x6", cannibalclobber6x6_variant());
+	add("cannibalclobber8x8", cannibalclobber8x8_variant());
+	add("breakthrough", breakthrough_variant());
     add("ataxx", ataxx_variant());
     add("flipersi", flipersi_variant());
     add("flipello", flipello_variant());
