@@ -94,7 +94,7 @@ endif
 
 
 ### 2.1. General and architecture defaults
-largeboards = yes
+largeboards = no
 all = no
 precomputedmagics = yes
 nnue = no
