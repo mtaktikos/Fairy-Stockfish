@@ -629,7 +629,7 @@ void Position::set_transparent_squares(StateInfo* si) const {
   while (blackWitches)
   {
       Square s = pop_lsb(blackWitches);
-      si->blackTransparent |= PseudoAttacks[WHITE][COMMONER][s];
+      si->blackTransparent |= PseudoAttacks[BLACK][COMMONER][s];
   }
 }
 
