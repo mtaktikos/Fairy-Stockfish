@@ -608,6 +608,32 @@ void Position::set_check_info(StateInfo* si) const {
 }
 
 
+/// Position::set_transparent_squares() computes the transparent squares
+/// based on squares adjacent to Witch pieces (CUSTOM_PIECE_1).
+
+void Position::set_transparent_squares(StateInfo* si) const {
+
+  si->whiteTransparent = 0;
+  si->blackTransparent = 0;
+
+  // Compute squares adjacent to white Witch pieces
+  Bitboard whiteWitches = pieces(WHITE, CUSTOM_PIECE_1);
+  while (whiteWitches)
+  {
+      Square s = pop_lsb(whiteWitches);
+      si->whiteTransparent |= PseudoAttacks[WHITE][COMMONER][s];
+  }
+
+  // Compute squares adjacent to black Witch pieces
+  Bitboard blackWitches = pieces(BLACK, CUSTOM_PIECE_1);
+  while (blackWitches)
+  {
+      Square s = pop_lsb(blackWitches);
+      si->blackTransparent |= PseudoAttacks[WHITE][COMMONER][s];
+  }
+}
+
+
 /// Position::set_state() computes the hash keys of the position, and other
 /// data that once computed is updated incrementally as moves are made.
 /// The function is only used when a new position is set up, and to verify
@@ -622,6 +648,7 @@ void Position::set_state(StateInfo* si) const {
   si->move = MOVE_NONE;
 
   set_check_info(si);
+  set_transparent_squares(si);
 
   for (Bitboard b = pieces(); b; )
   {
@@ -2106,6 +2133,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   // Update king attacks used for fast check detection
   set_check_info(st);
+  set_transparent_squares(st);
 
   // Calculate the repetition info. It is the ply distance from the previous
   // occurrence of the same position, negative in the 3-fold case, or zero
@@ -2331,6 +2359,7 @@ void Position::do_null_move(StateInfo& newSt) {
   sideToMove = ~sideToMove;
 
   set_check_info(st);
+  set_transparent_squares(st);
 
   st->repetition = 0;
 

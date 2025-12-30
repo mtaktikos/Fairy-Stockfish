@@ -56,6 +56,8 @@ struct StateInfo {
   Square castlingKingSquare[COLOR_NB];
   Bitboard wallSquares;
   Bitboard gatesBB[COLOR_NB];
+  Bitboard whiteTransparent;
+  Bitboard blackTransparent;
 
   // Not copied when making a move (will be recomputed anyhow)
   Key        key;
@@ -248,6 +250,8 @@ public:
   Bitboard ep_squares() const;
   Square castling_king_square(Color c) const;
   Bitboard gates(Color c) const;
+  Bitboard white_transparent() const;
+  Bitboard black_transparent() const;
   bool empty(Square s) const;
   int count(Color c, PieceType pt) const;
   template<PieceType Pt> int count(Color c) const;
@@ -355,6 +359,7 @@ private:
   void set_castling_right(Color c, Square rfrom);
   void set_state(StateInfo* si) const;
   void set_check_info(StateInfo* si) const;
+  void set_transparent_squares(StateInfo* si) const;
 
   // Other helpers
   void move_piece(Square from, Square to);
@@ -1253,6 +1258,14 @@ inline Square Position::castling_king_square(Color c) const {
 inline Bitboard Position::gates(Color c) const {
   assert(var != nullptr);
   return st->gatesBB[c];
+}
+
+inline Bitboard Position::white_transparent() const {
+  return st->whiteTransparent;
+}
+
+inline Bitboard Position::black_transparent() const {
+  return st->blackTransparent;
 }
 
 inline bool Position::is_on_semiopen_file(Color c, Square s) const {
