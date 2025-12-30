@@ -617,6 +617,8 @@ void Position::set_transparent_squares(StateInfo* si) const {
   si->blackTransparent = 0;
 
   // Compute squares adjacent to white Witch pieces
+  // Note: COMMONER attacks are color-independent (like King moves),
+  // so we use WHITE for both colors consistently
   Bitboard whiteWitches = pieces(WHITE, CUSTOM_PIECE_1);
   while (whiteWitches)
   {
@@ -629,7 +631,7 @@ void Position::set_transparent_squares(StateInfo* si) const {
   while (blackWitches)
   {
       Square s = pop_lsb(blackWitches);
-      si->blackTransparent |= PseudoAttacks[BLACK][COMMONER][s];
+      si->blackTransparent |= PseudoAttacks[WHITE][COMMONER][s];
   }
 }
 
