@@ -56,6 +56,7 @@ struct StateInfo {
   Square castlingKingSquare[COLOR_NB];
   Bitboard wallSquares;
   Bitboard gatesBB[COLOR_NB];
+  Bitboard transparentSquares[COLOR_NB];
 
   // Not copied when making a move (will be recomputed anyhow)
   Key        key;
@@ -197,6 +198,8 @@ public:
   Bitboard promoted_soldiers(Color c) const;
   bool makpong() const;
   EnclosingRule flip_enclosed_pieces() const;
+  PieceSet transparent_piece_types() const;
+  Bitboard transparent_squares(Color c) const;
   // winning conditions
   int n_move_rule() const;
   int n_fold_rule() const;
@@ -911,6 +914,15 @@ inline EnclosingRule Position::flip_enclosed_pieces() const {
   return var->flipEnclosedPieces;
 }
 
+inline PieceSet Position::transparent_piece_types() const {
+  assert(var != nullptr);
+  return var->transparentPieceTypes;
+}
+
+inline Bitboard Position::transparent_squares(Color c) const {
+  return st->transparentSquares[c];
+}
+
 inline Value Position::stalemate_value(int ply) const {
   assert(var != nullptr);
   if (var->stalematePieceCount)
@@ -1280,11 +1292,17 @@ inline Square Position::castling_rook_square(CastlingRights cr) const {
 }
 
 inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
+  // Calculate occupied bitboard, excluding transparent squares for sliders
+  Bitboard occupied = byTypeBB[ALL_PIECES];
+  // If this piece type is a slider and not itself a transparent piece type
+  if (AttackRiderTypes[pt] && !(var->transparentPieceTypes & pt))
+      occupied &= ~st->transparentSquares[c];
+      
   if (var->fastAttacks || var->fastAttacks2)
-      return attacks_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb();
+      return attacks_bb(c, pt, s, occupied) & board_bb();
 
   PieceType movePt = pt == KING ? king_type() : pt;
-  Bitboard b = attacks_bb(c, movePt, s, byTypeBB[ALL_PIECES]);
+  Bitboard b = attacks_bb(c, movePt, s, occupied);
   // Xiangqi soldier
   if (pt == SOLDIER && !(promoted_soldiers(c) & s))
       b &= file_bb(file_of(s));
@@ -1310,14 +1328,20 @@ inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
 }
 
 inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
+  // Calculate occupied bitboard, excluding transparent squares for sliders
+  Bitboard occupied = byTypeBB[ALL_PIECES];
+  // If this piece type is a slider and not itself a transparent piece type
+  if (MoveRiderTypes[0][pt] && !(var->transparentPieceTypes & pt))
+      occupied &= ~st->transparentSquares[c];
+      
   if (var->fastAttacks || var->fastAttacks2)
-      return moves_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb();
+      return moves_bb(c, pt, s, occupied) & board_bb();
 
   PieceType movePt = pt == KING ? king_type() : pt;
-  Bitboard b = moves_bb(c, movePt, s, byTypeBB[ALL_PIECES]);
+  Bitboard b = moves_bb(c, movePt, s, occupied);
   // Add initial moves
   if (double_step_region(c) & s)
-      b |= moves_bb<true>(c, movePt, s, byTypeBB[ALL_PIECES]);
+      b |= moves_bb<true>(c, movePt, s, occupied);
   // Xiangqi soldier
   if (pt == SOLDIER && !(promoted_soldiers(c) & s))
       b &= file_bb(file_of(s));
