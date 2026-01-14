@@ -28,19 +28,25 @@ transparentPieceTypes = n  # Makes knights create transparent squares
 
 ## Example
 
-In the included test variant (`tests/transparent_test.ini`), knights are designated as transparent pieces:
+In the included test variant (`tests/transparent_test.ini`), a custom Witch piece (symbol 'w') is designated as the transparent piece:
 
 ```ini
 [transparent_test:chess]
-transparentPieceTypes = n
+customPiece1 = w:N  # Witch moves like a knight
+transparentPieceTypes = w
+pieceToCharTable = PNBRQ..............WKpnbrq..............wk
 ```
 
 ### Effect on Gameplay
 
-With a white knight on e4:
+With a white Witch (W) on e4:
 - Squares d3, e3, f3, d4, e4, f4, d5, e5, f5 become whitetransparent
-- A white rook on e1 can now slide through e2, e3 to reach e4+ (if e4+ is empty or has a black piece)
-- In regular chess, the rook would be blocked by the knight on e4's influence
+- A white rook on e1 can now slide through e2, e3 to reach e5-e8 (if those squares are empty or have black pieces)
+- In regular chess with a knight on e4, the rook would be blocked from reaching past e3
+
+Similarly, with a black witch (w) on e4:
+- Squares d3, e3, f3, d4, e4, f4, d5, e5, f5 become blacktransparent  
+- Black sliders can pass through these squares
 
 ### Testing
 
@@ -62,4 +68,18 @@ The feature is implemented by:
 
 ## Use Cases
 
-This feature is useful for creating chess variants where certain pieces (like a "Witch" or similar piece) have the ability to allow friendly pieces to move more freely by making nearby squares "passable" for sliders.
+This feature is useful for creating chess variants where certain pieces (like a "Witch" piece with symbol 'w') have the ability to allow friendly pieces to move more freely by making nearby squares "passable" for sliders.
+
+### Real-World Example
+
+The Wildebeest variant (in variants.ini) includes a piece with symbol 'w':
+```ini
+[wildebeest:chess]
+customPiece2 = w:NC  # A piece that combines knight and camel moves
+```
+
+If you wanted to make this piece create transparent squares in a custom Wildebeest variant, you would add:
+```ini
+[wildebeest-transparent:wildebeest]
+transparentPieceTypes = w
+```

@@ -47,13 +47,17 @@ The implementation works by:
 ## Testing
 
 ### Test Variant
-Created `tests/transparent_test.ini` with knights as transparent pieces
+Created `tests/transparent_test.ini` with a custom Witch piece (symbol 'w') as the transparent piece
 
 ### Test Results
-With a white knight on e4 and white rook on e1:
-- **Regular chess**: 19 moves total
+With a white Witch (W) on e4 and white rook on e1:
+- **Regular chess**: 19 moves total (with a regular knight)
 - **With transparent squares**: 23 moves total (+4 moves)
-- The rook can now reach e5-e8 by sliding through the transparent squares around the knight
+- The rook can now reach e5-e8 by sliding through the transparent squares around the Witch
+
+With a black witch (w) on e4 and black rook on e8:
+- **With transparent squares**: 23 moves total
+- The black rook can slide through blacktransparent squares created by the black witch
 
 ### Verified Behavior
 1. ✅ Rook can slide through transparent squares vertically
@@ -84,9 +88,18 @@ To create a variant with transparent squares:
 
 ```ini
 [my_witch_variant:chess]
-# Define which piece type creates transparent squares
-transparentPieceTypes = w  # Using 'w' piece as the witch
-# Could also use: transparentPieceTypes = n (for knights)
+# Define a custom Witch piece with symbol 'w'
+customPiece1 = w:N  # Witch moves like a knight
+# Make the Witch create transparent squares
+transparentPieceTypes = w
+pieceToCharTable = PNBRQ..............WKpnbrq..............wk
+```
+
+You can also use any existing piece type:
+```ini
+[transparent_knights:chess]
+# Make knights create transparent squares
+transparentPieceTypes = n
 ```
 
 ## Performance Impact
