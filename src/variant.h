@@ -162,6 +162,7 @@ struct Variant {
   bool adjudicateFullBoard = false;
   CountingRule countingRule = NO_COUNTING;
   CastlingRights castlingWins = NO_CASTLING;
+  PieceSet transparentPieceTypes = NO_PIECE_SET;
 
   // Derived properties
   bool fastAttacks = true;
