@@ -155,7 +155,11 @@ namespace {
 
     // Define single and double push, left and right capture, as well as respective promotion moves
     Bitboard b1 = shift<Up>(pawns) & movable & target;
+    // Standard double-push: intermediate square must be empty
     Bitboard b2 = shift<Up>(shift<Up>(pawns & doubleStepRegion) & movable) & movable & target;
+    // Transparent double-push: intermediate square can be occupied if transparent
+    const Bitboard transparentOccupied = pos.transparent_squares(Us) & pos.pieces();
+    b2 |= shift<Up>(shift<Up>(pawns & doubleStepRegion) & transparentOccupied) & movable & target;
     Bitboard b3 = shift<Up>(shift<Up>(shift<Up>(pawns & tripleStepRegion) & movable) & movable) & movable & target;
     Bitboard brc = shift<UpRight>(pawns) & capturable & target;
     Bitboard blc = shift<UpLeft >(pawns) & capturable & target;
