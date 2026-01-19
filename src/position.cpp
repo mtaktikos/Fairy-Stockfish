@@ -591,6 +591,29 @@ void Position::set_check_info(StateInfo* si) const {
   si->bikjang = var->bikjangRule && ksq != SQ_NONE ? bool(attacks_bb(sideToMove, ROOK, ksq, pieces()) & pieces(sideToMove, KING)) : false;
   si->chased = var->chasingRule ? chased() : Bitboard(0);
   si->legalCapture = NO_VALUE;
+  
+  // Calculate transparent squares
+  si->transparentSquares[WHITE] = 0;
+  si->transparentSquares[BLACK] = 0;
+  for (PieceSet ps = var->transparentPieceTypes; ps;)
+  {
+      PieceType pt = pop_lsb(ps);
+      // White transparent squares: adjacent to or containing white pieces of this type
+      Bitboard whitePieces = pieces(WHITE, pt);
+      while (whitePieces)
+      {
+          Square s = pop_lsb(whitePieces);
+          si->transparentSquares[WHITE] |= s | PseudoAttacks[WHITE][KING][s];
+      }
+      // Black transparent squares: adjacent to or containing black pieces of this type
+      Bitboard blackPieces = pieces(BLACK, pt);
+      while (blackPieces)
+      {
+          Square s = pop_lsb(blackPieces);
+          si->transparentSquares[BLACK] |= s | PseudoAttacks[BLACK][KING][s];
+      }
+  }
+  
   if (var->extinctionPseudoRoyal)
   {
       si->pseudoRoyalCandidates = 0;
@@ -3232,16 +3255,8 @@ void Position::flip() {
   for (Rank r = max_rank(); r >= RANK_1; --r) // Piece placement
   {
       std::getline(ss, token, r > RANK_1 ? '/' : ' ');
-      size_t bracketPos = token.find('[');
-      if (bracketPos != string::npos)
-      {
-          f.insert(0, token.substr(0, bracketPos) + (f.empty() ? "" : "/"));
-          f += token.substr(bracketPos);
-      }
-      else
-          f.insert(0, token + (f.empty() ? "" : "/"));
+      f.insert(0, token + (f.empty() ? " " : "/"));
   }
-  f += " ";
 
   ss >> token; // Active color
   f += (token == "w" ? "B " : "W "); // Will be lowercased later
