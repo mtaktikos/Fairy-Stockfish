@@ -280,6 +280,7 @@ void MainThread::search() {
       // Send move only when not in analyze mode and not at game end
       if (!Limits.infinite && !ponder && rootMoves[0].pv[0] != MOVE_NONE && !Threads.abort.exchange(true))
       {
+          XBoard::stateMachine->lastBestMove = bestMove;
           std::string move = UCI::move(rootPos, bestMove);
           if (rootPos.walling())
           {

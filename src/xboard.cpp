@@ -380,6 +380,19 @@ void StateMachine::process_command(std::string token, std::istringstream& is) {
               go(analysisLimits);
       }
   }
+  else if (token == "nb")
+  {
+      stop();
+      if (lastBestMove != MOVE_NONE && moveList.size())
+      {
+          undo_move();
+          Search::LimitsType nextBestLimits = limits;
+          nextBestLimits.banmoves.push_back(lastBestMove);
+          lastBestMove = MOVE_NONE;
+          go(nextBestLimits);
+          moveAfterSearch = true;
+      }
+  }
   else if (token == "remove")
   {
       stop();
