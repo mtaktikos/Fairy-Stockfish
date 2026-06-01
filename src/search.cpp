@@ -201,12 +201,10 @@ void MainThread::search() {
       {
           // rotate MOVE_NONE to front (for optional game end)
           std::rotate(rootMoves.rbegin(), rootMoves.rbegin() + 1, rootMoves.rend());
-          // do not claim when pondering
-          if (!ponder)
-              sync_cout << (  result == VALUE_DRAW ? "1/2-1/2 {Draw}"
-                              : (rootPos.side_to_move() == BLACK ? -result : result) == VALUE_MATE ? "1-0 {White wins}"
-                              : "0-1 {Black wins}")
-                          << sync_endl;
+          sync_cout << (  result == VALUE_DRAW ? "1/2-1/2 {Draw}"
+                        : (rootPos.side_to_move() == BLACK ? -result : result) == VALUE_MATE ? "1-0 {White wins}"
+                        : "0-1 {Black wins}")
+                    << sync_endl;
       }
       else
       sync_cout << "info depth 0 score "
@@ -282,7 +280,6 @@ void MainThread::search() {
       // Send move only when not in analyze mode and not at game end
       if (!Limits.infinite && !ponder && rootMoves[0].pv[0] != MOVE_NONE && !Threads.abort.exchange(true))
       {
-          XBoard::stateMachine->lastBestMove = bestMove;
           std::string move = UCI::move(rootPos, bestMove);
           if (rootPos.walling())
           {
@@ -1554,10 +1551,6 @@ moves_loop: // When in check, search starts from here
     // Check for maximum ply reached
     if (ss->ply >= MAX_PLY)
         return !ss->inCheck ? evaluate(pos) : VALUE_DRAW;
-
-    // Safeguard against too deep recursions in quiescence search
-    if (depth < DEPTH_QS_MAX && !ss->inCheck)
-        return evaluate(pos);
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 

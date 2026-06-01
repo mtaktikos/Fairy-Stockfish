@@ -315,7 +315,7 @@ enum EnclosingRule {
 };
 
 enum WallingRule {
-  NO_WALLING, ARROW, DUCK, EDGE, PAST, STATIC
+  NO_WALLING, ARROW, DUCK, EDGE, PAST, STATIC, HOLE
 };
 
 enum EndgameEval {
@@ -484,7 +484,6 @@ enum : int {
   DEPTH_QS_CHECKS     =  0,
   DEPTH_QS_NO_CHECKS  = -1,
   DEPTH_QS_RECAPTURES = -5,
-  DEPTH_QS_MAX        = -32,
 
   DEPTH_NONE   = -6,
 

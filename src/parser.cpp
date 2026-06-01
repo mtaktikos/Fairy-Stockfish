@@ -119,8 +119,9 @@ namespace {
                 : value == "edge" ? EDGE
                 : value == "past" ? PAST
                 : value == "static" ? STATIC
+                : value == "hole" ? HOLE
                 : NO_WALLING;
-        return value == "arrow" || value == "duck" || value == "edge" || value =="past" || value == "static" || value == "none";
+        return value == "arrow" || value == "duck" || value == "edge" || value =="past" || value == "static" || value == "hole" || value == "none";
     }
 
     template <> bool set(const std::string& value, Bitboard& target) {

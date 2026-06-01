@@ -40,7 +40,6 @@ public:
     moveAfterSearch = false;
     playColor = COLOR_NB;
     ponderMove = MOVE_NONE;
-    lastBestMove = MOVE_NONE;
     ponderHighlight = "";
   }
   void go(Search::LimitsType searchLimits, bool ponder = false);
@@ -53,7 +52,6 @@ public:
   void process_command(std::string token, std::istringstream& is);
   bool moveAfterSearch;
   Move ponderMove;
-  Move lastBestMove;
 
 private:
   Position& pos;

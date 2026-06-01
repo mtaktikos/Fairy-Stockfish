@@ -594,9 +594,7 @@ inline bool Position::nnue_use_pockets() const {
 
 inline bool Position::nnue_applicable() const {
   // Do not use NNUE during setup phases (placement, sittuyin)
-  return (!count_in_hand(ALL_PIECES) || nnue_use_pockets() || !must_drop())
-         && !virtualPieces
-         && (!nnue_king() || (count(WHITE, nnue_king()) == 1 && count(BLACK, nnue_king()) == 1));
+  return (!count_in_hand(ALL_PIECES) || nnue_use_pockets() || !must_drop()) && !virtualPieces;
 }
 
 inline int Position::nnue_piece_square_index(Color perspective, Piece pc) const {
@@ -915,6 +913,11 @@ inline EnclosingRule Position::flip_enclosed_pieces() const {
 
 inline Value Position::stalemate_value(int ply) const {
   assert(var != nullptr);
+  if (var->stalematePieceCount)
+  {
+      int c = count<ALL_PIECES>(sideToMove) - count<ALL_PIECES>(~sideToMove);
+      return c == 0 ? VALUE_DRAW : convert_mate_value(c < 0 ? var->stalemateValue : -var->stalemateValue, ply);
+  }
   // Check for checkmate of pseudo-royal pieces
   if (var->extinctionPseudoRoyal)
   {
@@ -944,17 +947,7 @@ inline Value Position::stalemate_value(int ply) const {
               return convert_mate_value(var->checkmateValue, ply);
       }
   }
-  Value result = var->stalemateValue;
-  // Is piece count used to determine stalemate result?
-  if (var->stalematePieceCount)
-  {
-      int c = count<ALL_PIECES>(sideToMove) - count<ALL_PIECES>(~sideToMove);
-      result = c == 0 ? VALUE_DRAW : c < 0 ? var->stalemateValue : -var->stalemateValue;
-  }
-  // Apply material counting
-  if (result == VALUE_DRAW && var->materialCounting)
-      result = material_counting_result();
-  return convert_mate_value(result, ply);
+  return convert_mate_value(var->stalemateValue, ply);
 }
 
 inline Value Position::checkmate_value(int ply) const {
@@ -1064,20 +1057,34 @@ inline bool Position::flag_reached(Color c) const {
         (flag_region(c) & pieces(c, flag_piece(c)))
         && (   popcount(flag_region(c) & pieces(c, flag_piece(c))) >= var->flagPieceCount
             || (var->flagPieceBlockedWin && !(flag_region(c) & ~pieces())));
-
-  // When flagPieceSafe and flagMove are combined, it means that only unsafe pieces cause an extra move
-  if (simpleResult && var->flagPieceSafe && (!flag_move() || c == ~sideToMove))
+      
+  if (simpleResult&&var->flagPieceSafe)
   {
       Bitboard piecesInFlagZone = flag_region(c) & pieces(c, flag_piece(c));
-      int potentialPieces = popcount(piecesInFlagZone);
-      // If we are exactly at the required piece count, all pieces in the flag zone need to be safe
-      while (piecesInFlagZone && potentialPieces == var->flagPieceCount)
+      int potentialPieces = (popcount(piecesInFlagZone));
+      /*
+      There isn't a variant that uses it, but in the hypothetical game where the rules say I need 3
+      pieces in the flag zone and they need to be safe: If I have 3 pieces there, but one is under
+      threat, I don't think I can declare victory. If I have 4 there, but one is under threat, I
+      think that's victory.
+      */      
+      while (piecesInFlagZone)
       {
           Square sr = pop_lsb(piecesInFlagZone);
           Bitboard flagAttackers = attackers_to(sr, ~c);
-          if (flagAttackers)
-              return false;
+
+          if ((potentialPieces < var->flagPieceCount) || (potentialPieces >= var->flagPieceCount + 1)) break;
+          while (flagAttackers)
+          {
+              Square currentAttack = pop_lsb(flagAttackers);
+              if (legal(make_move(currentAttack, sr)))
+              {
+                  potentialPieces--;
+                  break;
+              }
+          }
       }
+      return potentialPieces >= var->flagPieceCount;
   }
   return simpleResult;
 }
@@ -1273,11 +1280,15 @@ inline Square Position::castling_rook_square(CastlingRights cr) const {
 }
 
 inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
+  Bitboard occupied = byTypeBB[ALL_PIECES];
+  if (walling_rule() == HOLE)
+      occupied &= ~st->wallSquares;
+
   if (var->fastAttacks || var->fastAttacks2)
-      return attacks_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb();
+      return attacks_bb(c, pt, s, occupied) & board_bb();
 
   PieceType movePt = pt == KING ? king_type() : pt;
-  Bitboard b = attacks_bb(c, movePt, s, byTypeBB[ALL_PIECES]);
+  Bitboard b = attacks_bb(c, movePt, s, occupied);
   // Xiangqi soldier
   if (pt == SOLDIER && !(promoted_soldiers(c) & s))
       b &= file_bb(file_of(s));
@@ -1285,17 +1296,17 @@ inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
   if (pt == JANGGI_CANNON)
   {
       b &= ~pieces(pt);
-      b &= attacks_bb(c, pt, s, pieces() ^ pieces(pt));
+      b &= attacks_bb(c, pt, s, occupied ^ pieces(pt));
   }
   // Janggi palace moves
   if (diagonal_lines() & s)
   {
       PieceType diagType = movePt == WAZIR ? FERS : movePt == SOLDIER ? PAWN : movePt == ROOK ? BISHOP : NO_PIECE_TYPE;
       if (diagType)
-          b |= attacks_bb(c, diagType, s, pieces()) & diagonal_lines();
+          b |= attacks_bb(c, diagType, s, occupied) & diagonal_lines();
       else if (movePt == JANGGI_CANNON)
-          b |=  rider_attacks_bb<RIDER_CANNON_DIAG>(s, pieces())
-              & rider_attacks_bb<RIDER_CANNON_DIAG>(s, pieces() ^ pieces(pt))
+          b |=  rider_attacks_bb<RIDER_CANNON_DIAG>(s, occupied)
+              & rider_attacks_bb<RIDER_CANNON_DIAG>(s, occupied ^ pieces(pt))
               & ~pieces(pt)
               & diagonal_lines();
   }
@@ -1303,14 +1314,18 @@ inline Bitboard Position::attacks_from(Color c, PieceType pt, Square s) const {
 }
 
 inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
+  Bitboard occupied = byTypeBB[ALL_PIECES];
+  if (walling_rule() == HOLE)
+      occupied &= ~st->wallSquares;
+
   if (var->fastAttacks || var->fastAttacks2)
-      return moves_bb(c, pt, s, byTypeBB[ALL_PIECES]) & board_bb();
+      return moves_bb(c, pt, s, occupied) & board_bb();
 
   PieceType movePt = pt == KING ? king_type() : pt;
-  Bitboard b = moves_bb(c, movePt, s, byTypeBB[ALL_PIECES]);
+  Bitboard b = moves_bb(c, movePt, s, occupied);
   // Add initial moves
   if (double_step_region(c) & s)
-      b |= moves_bb<true>(c, movePt, s, byTypeBB[ALL_PIECES]);
+      b |= moves_bb<true>(c, movePt, s, occupied);
   // Xiangqi soldier
   if (pt == SOLDIER && !(promoted_soldiers(c) & s))
       b &= file_bb(file_of(s));
@@ -1318,17 +1333,17 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
   if (pt == JANGGI_CANNON)
   {
       b &= ~pieces(pt);
-      b &= attacks_bb(c, pt, s, pieces() ^ pieces(pt));
+      b &= attacks_bb(c, pt, s, occupied ^ pieces(pt));
   }
   // Janggi palace moves
   if (diagonal_lines() & s)
   {
       PieceType diagType = movePt == WAZIR ? FERS : movePt == SOLDIER ? PAWN : movePt == ROOK ? BISHOP : NO_PIECE_TYPE;
       if (diagType)
-          b |= attacks_bb(c, diagType, s, pieces()) & diagonal_lines();
+          b |= attacks_bb(c, diagType, s, occupied) & diagonal_lines();
       else if (movePt == JANGGI_CANNON)
-          b |=  rider_attacks_bb<RIDER_CANNON_DIAG>(s, pieces())
-              & rider_attacks_bb<RIDER_CANNON_DIAG>(s, pieces() ^ pieces(pt))
+          b |=  rider_attacks_bb<RIDER_CANNON_DIAG>(s, occupied)
+              & rider_attacks_bb<RIDER_CANNON_DIAG>(s, occupied ^ pieces(pt))
               & ~pieces(pt)
               & diagonal_lines();
   }
