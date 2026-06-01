@@ -448,7 +448,7 @@ namespace {
         }
 
         // Cheshire Cat: Commoner on its gate square can move like a Queen (including sliding over holes)
-        if (pos.cheshire_cat_moves() && (pos.pieces(Us, COMMONER) & pos.gates(Us)) && Type != EVASIONS)
+        if (pos.cheshire_cat_moves() && Type != EVASIONS)
         {
             Bitboard commoners = pos.pieces(Us, COMMONER) & pos.gates(Us);
             while (commoners)
