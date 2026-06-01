@@ -110,6 +110,7 @@ struct Variant {
   bool wallOrMove = false;
   bool seirawanGating = false;
   bool cambodianMoves = false;
+  bool cheshireCatMoves = false;
   Bitboard diagonalLines = 0;
   bool pass[COLOR_NB] = {false, false};
   bool passOnStalemate[COLOR_NB] = {false, false};
