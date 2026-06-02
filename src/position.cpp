@@ -388,6 +388,14 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
           }
 
           // Set gates (and skip castling rights)
+          bool hasInitialMoveCapability = (pieces(c) & rsq)
+                                       && ((PseudoMoves[1][c][type_of(piece_on(rsq))][rsq]
+                                            & ~PseudoMoves[0][c][type_of(piece_on(rsq))][rsq]) != 0);
+          if (!gating() && hasInitialMoveCapability)
+          {
+              st->gatesBB[c] |= rsq;
+              continue;
+          }
           if (gating())
           {
               // Only add gates for occupied squares
@@ -777,7 +785,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   if (can_castle(WHITE_OOO))
       ss << (chess960 ? char('A' + file_of(castling_rook_square(WHITE_OOO))) : 'Q');
 
-  if (gating() && gates(WHITE) && (!seirawan_gating() || count_in_hand(WHITE, ALL_PIECES) > 0 || captures_to_hand()))
+  if (gates(WHITE) && (!seirawan_gating() || count_in_hand(WHITE, ALL_PIECES) > 0 || captures_to_hand()))
       for (File f = FILE_A; f <= max_file(); ++f)
           if (   (gates(WHITE) & file_bb(f))
               // skip gating flags redundant with castling flags
@@ -796,7 +804,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
   if (can_castle(BLACK_OOO))
       ss << (chess960 ? char('a' + file_of(castling_rook_square(BLACK_OOO))) : 'q');
 
-  if (gating() && gates(BLACK) && (!seirawan_gating() || count_in_hand(BLACK, ALL_PIECES) > 0 || captures_to_hand()))
+  if (gates(BLACK) && (!seirawan_gating() || count_in_hand(BLACK, ALL_PIECES) > 0 || captures_to_hand()))
       for (File f = FILE_A; f <= max_file(); ++f)
           if (   (gates(BLACK) & file_bb(f))
               // skip gating flags redundant with castling flags
@@ -805,7 +813,7 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
               && !(can_castle(BLACK_OOO) && f == file_of(castling_rook_square(BLACK_OOO))))
               ss << char('a' + f);
 
-  if (!can_castle(ANY_CASTLING) && !(gating() && (gates(WHITE) | gates(BLACK))))
+  if (!can_castle(ANY_CASTLING) && !(gates(WHITE) | gates(BLACK)))
       ss << '-';
 
   // Counting limit or ep-square
@@ -1984,7 +1992,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Remove gates
-  if (gating())
+  if (gating() || (gates(WHITE) | gates(BLACK)))
   {
       if (is_ok(from) && (gates(us) & from))
           st->gatesBB[us] ^= from;
