@@ -1324,7 +1324,7 @@ inline Bitboard Position::moves_from(Color c, PieceType pt, Square s) const {
   PieceType movePt = pt == KING ? king_type() : pt;
   Bitboard b = moves_bb(c, movePt, s, occupied);
   // Add initial moves
-  if (double_step_region(c) & s)
+  if ((double_step_region(c) | gates(c)) & s)
       b |= moves_bb<true>(c, movePt, s, occupied);
   // Xiangqi soldier
   if (pt == SOLDIER && !(promoted_soldiers(c) & s))
