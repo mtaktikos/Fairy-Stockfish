@@ -191,6 +191,7 @@ public:
   Bitboard walling_region(Color c) const;
   bool seirawan_gating() const;
   bool cambodian_moves() const;
+  bool cheshire_cat_moves() const;
   Bitboard diagonal_lines() const;
   bool pass(Color c) const;
   bool pass_on_stalemate(Color c) const;
@@ -869,6 +870,11 @@ inline bool Position::seirawan_gating() const {
 inline bool Position::cambodian_moves() const {
   assert(var != nullptr);
   return var->cambodianMoves;
+}
+
+inline bool Position::cheshire_cat_moves() const {
+  assert(var != nullptr);
+  return var->cheshireCatMoves;
 }
 
 inline Bitboard Position::diagonal_lines() const {

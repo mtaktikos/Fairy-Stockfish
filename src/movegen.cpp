@@ -447,6 +447,20 @@ namespace {
             }
         }
 
+        // Cheshire Cat: Commoner on its gate square can move like a Queen (including sliding over holes)
+        if (pos.cheshire_cat_moves() && Type != EVASIONS)
+        {
+            Bitboard commoners = pos.pieces(Us, COMMONER) & pos.gates(Us);
+            while (commoners)
+            {
+                Square from = pop_lsb(commoners);
+                // Generate non-adjacent Queen moves; adjacent moves are already covered by normal Commoner moves
+                Bitboard b = pos.attacks_from(Us, QUEEN, from) & ~pos.attacks_from(Us, COMMONER, from) & target;
+                while (b)
+                    moveList = make_move_and_gating<SPECIAL>(pos, moveList, Us, from, pop_lsb(b));
+            }
+        }
+
         // Workaround for passing: Execute a non-move with any piece
         if (pos.pass(Us) && !pos.count<KING>(Us) && pos.pieces(Us))
             *moveList++ = make<SPECIAL>(lsb(pos.pieces(Us)), lsb(pos.pieces(Us)));
